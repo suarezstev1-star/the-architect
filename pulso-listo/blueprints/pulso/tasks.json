@@ -1,0 +1,695 @@
+[
+  {
+    "id": "E1-T1",
+    "title": "Monorepo, tooling y servidor /health ejecutable",
+    "epic": "01-fundacion",
+    "dependencies": [],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `pnpm install --frozen-lockfile` runs THE SYSTEM SHALL exit 0 without modifying `pnpm-lock.yaml`.",
+      "WHEN `pnpm typecheck` runs THE SYSTEM SHALL exit 0 for the root project, `@pulso/shared`, `@pulso/server` and `@pulso/web`.",
+      "WHEN `pnpm lint` runs THE SYSTEM SHALL exit 0 with zero errors, including over the files copied from `workspace/` and with `blueprints/` excluded.",
+      "WHEN `pnpm build` runs THE SYSTEM SHALL emit `packages/shared/dist/index.js`, `apps/server/dist/index.js` and `apps/web/dist/index.html`.",
+      "WHEN `node scripts/smoke-server.mjs` runs THE SYSTEM SHALL start `node apps/server/dist/index.js` on a free port, receive status 200 and a JSON body `{ ok: true, sha: <non-empty string> }` from `GET /health` (a body that `app.ts` builds and validates with `HealthResponseSchema` imported from `@pulso/shared`), confirm that `@pulso/shared` resolves from `apps/server` to `packages/shared/dist/index.js`, stop the process and exit 0.",
+      "WHEN `pnpm test:unit` runs THE SYSTEM SHALL exit 0 with 0 failed and 0 skipped."
+    ],
+    "verify": [
+      "pnpm install --frozen-lockfile",
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "pnpm build",
+      "node scripts/smoke-server.mjs",
+      "test -f apps/web/dist/index.html"
+    ],
+    "checkpoint": "step-01-monorepo-health",
+    "files": [
+      "packages/shared/src/**",
+      "apps/server/src/**",
+      "apps/web/index.html",
+      "apps/web/src/**",
+      "scripts/smoke-server.mjs"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E1-T2",
+    "title": "Sistema visual Monitor clínico: tokens y tema",
+    "epic": "01-fundacion",
+    "dependencies": [
+      "E1-T1"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `pnpm test:unit apps/web/src/styles/tokens.test.ts` runs THE SYSTEM SHALL parse `tokens.css` and assert, in the dark and in the light theme, that text, secondary text, ghost and alert each reach at least 4.5:1 against bg, surface and surface2, that signal reaches at least 4.5:1 against bg and surface and at least 3:1 against surface2 (light surface2 = 4.35, graphic use only), that strong border and focus each reach at least 3:1 against the same three, and that every ratio equals the measured value of the design table within 0.05.",
+      "WHEN `node scripts/check-no-hex.mjs` runs THE SYSTEM SHALL exit 0 because no hex color literal appears in `apps/web/src` outside `apps/web/src/styles/tokens.css` and its tests, nor in `apps/web/index.html`.",
+      "WHEN `pnpm test:unit apps/web/src/theme-init.test.ts` runs THE SYSTEM SHALL assert that `index.html` declares `lang=\"es\"` and `data-theme=\"dark\"` on `<html>` and loads `/theme-init.js` as a blocking script before any stylesheet, and that executing `theme-init.js` with `localStorage` value `light` sets `data-theme` to `light` and with value `system` and a dark `matchMedia` sets it to `dark`.",
+      "WHEN `pnpm test:e2e tests/e2e/ui/layout.spec.ts` runs THE SYSTEM SHALL load `/` at 375x812 and at 1440x900 and find `document.documentElement.scrollWidth` equal to `document.documentElement.clientWidth` on both."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "node scripts/check-no-hex.mjs",
+      "pnpm test:e2e tests/e2e/ui/layout.spec.ts"
+    ],
+    "checkpoint": "step-02-visual-system",
+    "files": [
+      "apps/web/index.html",
+      "apps/web/public/theme-init.js",
+      "apps/web/src/**",
+      "scripts/check-no-hex.mjs",
+      "tests/e2e/ui/layout.spec.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E1-T3",
+    "title": "Esquemas de datos, reglas de Firestore y org-store",
+    "epic": "01-fundacion",
+    "dependencies": [
+      "E1-T1"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `pnpm test:unit packages/shared/src/schemas/schemas.test.ts` runs THE SYSTEM SHALL parse a valid example of each schema of the data model and reject `contour` with 3001 points, `plan: 'pro'`, `role: 'admin'`, `themePreference: 'neon'` and an unknown `profileId`.",
+      "WHEN `pnpm test:emu` runs the rules suite THE SYSTEM SHALL show, for every name in `COLLECTION_NAMES`, that a member of org A can get and list under `orgs/A`, gets permission denied on get and list under `orgs/B`, and that no signed-in user (member included) and no anonymous client can create, update or delete any document under `orgs/{orgId}` or `users/{uid}`.",
+      "WHEN `pnpm test:emu` runs the org-store suite THE SYSTEM SHALL read and write only under `orgs/{orgId}` for the given orgId, never return a document stored under another org, and throw on an orgId that does not match `/^[A-Za-z0-9-]{8,64}$/`.",
+      "WHEN `pnpm test:unit tests/repo/firestore-indexes.test.ts` runs THE SYSTEM SHALL assert that `firestore.indexes.json` has a field override for collection group `sessions`, field `contour`, with `indexes: []`, and the composite index `profileId` ascending plus `startedAt` descending."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "pnpm test:emu",
+      "pnpm build",
+      "node scripts/smoke-server.mjs"
+    ],
+    "checkpoint": "step-03-data-schemas-rules",
+    "files": [
+      "packages/shared/src/schemas/**",
+      "packages/shared/src/index.ts",
+      "apps/server/src/data/org-store.ts",
+      "apps/server/tests/emulator/**",
+      "tests/repo/firestore-indexes.test.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E1-T4",
+    "title": "Entorno validado, logger con request id y health profundo",
+    "epic": "01-fundacion",
+    "dependencies": [
+      "E1-T1"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `pnpm test:unit apps/server/src/env.test.ts` runs THE SYSTEM SHALL use `baseEnv()` (every server key of `.env.example`) as the valid input and assert that `loadEnv(baseEnv without GOOGLE_CLOUD_PROJECT)` throws an error naming it and that `loadEnv(baseEnv())` returns the typed object with the documented defaults, an empty value counting as absent.",
+      "WHEN a request reaches the server THE SYSTEM SHALL answer with an `x-request-id` header and write every log line of that request with the same `request_id`, with the `authorization` header redacted (asserted in `apps/server/src/logger.test.ts`).",
+      "WHEN `GET /health/deep` runs against the Firestore emulator THE SYSTEM SHALL return 200 with `{ ok: true, firestore: 'up' }`, and WHEN Firestore is unreachable, or no `db` is injected, THE SYSTEM SHALL return 503 with `{ ok: false, firestore: 'down' }`.",
+      "WHEN `pnpm build` and then `node scripts/smoke-server.mjs` run after `loadEnv` replaced the raw `process.env` reads THE SYSTEM SHALL still exit 0, because the script starts the server with the complete environment of `.env.example`."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "pnpm test:emu",
+      "pnpm build",
+      "node scripts/smoke-server.mjs"
+    ],
+    "checkpoint": "step-04-env-logger-health",
+    "files": [
+      "apps/server/src/*.ts",
+      "apps/server/tests/helpers/env.ts",
+      "apps/server/tests/emulator/health.test.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E1-T5",
+    "title": "Auth en el servidor: token, lista de permitidos y JIT",
+    "epic": "01-fundacion",
+    "dependencies": [
+      "E1-T3",
+      "E1-T4"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN a request without `Authorization`, or with an invalid token, reaches `GET /api/v1/me` THE SYSTEM SHALL answer 401 with `{ error: { code: 'unauthenticated', message, requestId } }`.",
+      "WHEN a valid Auth-emulator ID token for an email outside `ALLOWED_EMAILS` calls `POST /api/v1/session` THE SYSTEM SHALL answer 403 with code `forbidden_email` and create no document in `users`, `orgs` or `members`.",
+      "WHEN a valid token for an allowed email calls `POST /api/v1/session` THE SYSTEM SHALL create exactly one `users/{uid}`, one `orgs/{orgId}` with `plan: 'free'` and `ownerUid: uid`, and one `orgs/{orgId}/members/{uid}` with `role: 'owner'`, and WHEN it is called again, also twice concurrently, THE SYSTEM SHALL return the same `orgId` and leave those document counts unchanged.",
+      "WHEN a preflight `OPTIONS /api/v1/me` arrives with an `Origin` listed in `WEB_ORIGINS` THE SYSTEM SHALL reply with the same value in `access-control-allow-origin`, and WHEN the `Origin` is not listed THE SYSTEM SHALL omit that header.",
+      "WHEN `loadEnv` receives `baseEnv()` with `ALLOWED_EMAILS` missing or empty THE SYSTEM SHALL throw an error that names `ALLOWED_EMAILS`."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "pnpm test:emu",
+      "pnpm build",
+      "node scripts/smoke-server.mjs"
+    ],
+    "checkpoint": "step-05-auth-server",
+    "files": [
+      "apps/server/src/auth/**",
+      "apps/server/src/routes/session.ts",
+      "apps/server/src/*.ts",
+      "apps/server/tests/**"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E1-T6",
+    "title": "Auth en la web: Google, guardia de rutas y entorno",
+    "epic": "01-fundacion",
+    "dependencies": [
+      "E1-T5",
+      "E1-T2"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN the anonymous browser opens `/monitor` THE SYSTEM SHALL redirect to `/entrar?next=%2Fmonitor` and, after the emulator test sign-in, return to `/monitor` (`pnpm test:e2e:full tests/e2e/app/auth.spec.ts`).",
+      "WHEN `apps/web/src/lib/env.ts` is imported in a jsdom test THE SYSTEM SHALL parse the `VITE_*` defaults that `apps/web/tests/setup.ts` takes from `.env.example`, and WHEN `VITE_FIREBASE_PROJECT_ID` is absent THE SYSTEM SHALL throw an error naming it.",
+      "WHEN an anonymous user renders a route wrapped by `RequireAuth` at `/monitor` THE SYSTEM SHALL navigate to `/entrar?next=%2Fmonitor`, and WHEN the user is authenticated THE SYSTEM SHALL render the child.",
+      "WHEN `VITE_USE_EMULATORS` is `false` THE SYSTEM SHALL NOT render the button 'Entrar con cuenta de prueba' on `/entrar`.",
+      "WHEN, inside the `VITE_USE_EMULATORS === 'true'` branch only, the test sign-in has created or signed in `e2e@pulso.test` THE SYSTEM SHALL call `POST http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:update?key=fake` with `{ idToken, emailVerified: true }`, refresh the token with `getIdToken(true)` and only then call `POST /api/v1/session`, so that the `email_verified` check of the server passes (asserted in `Entrar.test.tsx` with simulated `fetch` and Auth, and by the e2e sign-in succeeding)."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "node scripts/check-no-hex.mjs",
+      "pnpm build",
+      "pnpm test:e2e:full tests/e2e/app/auth.spec.ts"
+    ],
+    "checkpoint": "step-06-auth-web",
+    "files": [
+      "apps/web/src/**",
+      "tests/e2e/app/auth.spec.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E1-T7",
+    "title": "Shell autenticado, ajustes y PWA instalable",
+    "epic": "01-fundacion",
+    "dependencies": [
+      "E1-T2",
+      "E1-T6"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `pnpm build` and then `node scripts/check-pwa.mjs` run THE SYSTEM SHALL exit 0 because `apps/web/dist/manifest.webmanifest` has name, short_name, start_url `/`, display `standalone`, lang `es`, icons of 192x192 and 512x512 (one of them maskable) whose files exist in `apps/web/dist`, and `apps/web/dist/sw.js` exists.",
+      "WHEN `pnpm test:unit tests/repo/tokens-parity.test.ts` runs THE SYSTEM SHALL assert that `theme_color` and `background_color` in `apps/web/vite.config.ts` equal the dark `--p-dark-bg` hex of `tokens.css`.",
+      "WHEN each route of `apps/web/src/routes.ts` renders in jsdom THE SYSTEM SHALL produce exactly one `h1`, a `main` landmark with id `contenido`, and a skip link as the first focusable element.",
+      "WHEN `PATCH /api/v1/me` receives `{ themePreference: 'light', sttLocale: 'es-MX' }` with a valid token THE SYSTEM SHALL persist both on `users/{uid}` and answer 200, and WHEN it receives `{ themePreference: 'neon' }` THE SYSTEM SHALL answer 422 with code `validation_error` and persist nothing.",
+      "WHEN `pnpm test:e2e:full tests/e2e/app/shell.spec.ts` visits `/`, `/ajustes` and `/entrar` at 375 and 1440 px THE SYSTEM SHALL find no horizontal scroll and an axe-core scan with tags wcag2a, wcag2aa, wcag21aa and wcag22aa reporting 0 violations, and after the signed-in user changes the theme in Ajustes and reloads THE SYSTEM SHALL have `data-theme` on `<html>` equal to the chosen theme at `DOMContentLoaded`.",
+      "WHEN `pnpm test:e2e tests/e2e/ui/pwa.spec.ts` loads the production bundle served by `vite preview` on port 4173 THE SYSTEM SHALL resolve `navigator.serviceWorker.ready` and answer 200 to `fetch('/sw.js')`."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "pnpm test:emu",
+      "pnpm build",
+      "node scripts/check-pwa.mjs",
+      "node scripts/smoke-server.mjs",
+      "pnpm test:e2e tests/e2e/ui/pwa.spec.ts",
+      "pnpm test:e2e:full tests/e2e/app/shell.spec.ts"
+    ],
+    "checkpoint": "step-07-shell-pwa",
+    "files": [
+      "apps/web/src/**",
+      "apps/server/src/routes/session.ts",
+      "scripts/check-pwa.mjs",
+      "apps/server/tests/emulator/me.test.ts",
+      "tests/**"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E2-T1",
+    "title": "Captura de micrófono con AudioWorklet",
+    "epic": "02-nucleo-de-voz",
+    "dependencies": [
+      "E1-T7"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `StreamResampler` converts a generated 440 Hz sine from 48000 Hz and from 44100 Hz to 16000 Hz in blocks of 128 samples THE SYSTEM SHALL output 16000 samples per second of input (plus or minus 1) with a zero-crossing frequency of 440 Hz plus or minus 1 percent, and WHEN both rates are 16000 THE SYSTEM SHALL return the input unchanged.",
+      "WHEN `FrameAssembler` is fed blocks of arbitrary sizes totalling 3 s of a 0.5-amplitude sine at 48000 Hz THE SYSTEM SHALL emit exactly 30 frames of 1600 Int16 samples with `rms` equal to 0.5/sqrt(2) plus or minus 2 percent, emit `rms` 0 for silence, and drop or duplicate no sample across block boundaries.",
+      "WHEN `encodeWavPcm16` output is passed to `decodeWavPcm16` THE SYSTEM SHALL return the same sample rate and identical samples, and WHEN the bytes lack a `RIFF` header or are truncated THE SYSTEM SHALL throw `WavError`.",
+      "WHEN `getUserMedia` rejects with `NotAllowedError` THE SYSTEM SHALL make `MicCapture.start()` reject with a `MicError` whose `reason` is `permission-denied`, mapped to the Spanish message key `mic.denied` of `es.ts`.",
+      "WHEN the `AudioContext` reports a `sampleRate` different from 16000 THE SYSTEM SHALL pass that real rate to the worklet as `processorOptions.inputRate` (asserted with a fake `AudioContext`).",
+      "WHEN `pnpm test:e2e tests/e2e/ui/worklet.spec.ts` runs against the production bundle served by `vite preview` on port 4173 THE SYSTEM SHALL load the built worklet file in a real `AudioContext` with `audioWorklet.addModule` and construct `new AudioWorkletNode(ctx, 'pulso-capture')` without error."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "pnpm build",
+      "grep -rl registerProcessor apps/web/dist/assets",
+      "pnpm test:e2e tests/e2e/ui/worklet.spec.ts"
+    ],
+    "checkpoint": "step-08-mic-capture",
+    "files": [
+      "packages/shared/src/dsp/**",
+      "packages/shared/src/constants.ts",
+      "packages/shared/src/index.ts",
+      "apps/web/src/**",
+      "tests/e2e/ui/worklet.spec.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E2-T2",
+    "title": "Tono con YIN, mediana y semitonos",
+    "epic": "02-nucleo-de-voz",
+    "dependencies": [
+      "E2-T1"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `yin` analyses a 1600-sample frame at 16000 Hz of a pure sine at each of 85, 120, 180, 220, 300 and 440 Hz THE SYSTEM SHALL return a frequency within 10 cents of the input and `probability` of at least 0.9.",
+      "WHEN `yin` analyses a synthesized voice with fundamental 110 Hz and harmonics 2 to 6 at amplitude 1/h plus seeded white noise at SNR 20 dB THE SYSTEM SHALL return 110 Hz within 25 cents.",
+      "WHEN the frame is all zeros, or white noise at RMS 0.2, THE SYSTEM SHALL return `freq: null`.",
+      "WHEN `PitchTracker` receives frames whose raw estimates contain one isolated octave jump (110, 220, 110 Hz) THE SYSTEM SHALL output no jump larger than 2 semitones for that frame (median of 5 plus octave correction).",
+      "WHEN `hzToSemitones` runs THE SYSTEM SHALL return 0 for the reference, 12 for twice the reference and -12 for half, within 1e-9.",
+      "WHEN `pnpm test:unit packages/shared/src/dsp/latency.test.ts` processes 600 frames THE SYSTEM SHALL measure a p95 processing time under 20 ms per 100 ms frame."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit packages/shared"
+    ],
+    "checkpoint": "step-09-pitch-yin",
+    "files": [
+      "packages/shared/src/dsp/yin.ts",
+      "packages/shared/src/dsp/pitch.ts",
+      "packages/shared/src/dsp/*.test.ts",
+      "packages/shared/src/index.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E2-T3",
+    "title": "Monitor en vivo sobre canvas",
+    "epic": "02-nucleo-de-voz",
+    "dependencies": [
+      "E2-T2",
+      "E1-T7"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN 100 samples at 10 Hz are pushed into `RingSeries` with an 8000 ms window THE SYSTEM SHALL retain at most the last 80, and `toPlotPoints` SHALL map the newest sample to x = width and the oldest retained to x = 0 within 1 px, with `null` samples splitting the line into separate segments.",
+      "WHEN the render loop draws between two data frames THE SYSTEM SHALL place the newest point with `interpolateTail(prev, next, progress)`, returning `prev` at 0, the midpoint at 0.5 and `next` at 1.",
+      "WHEN voiced samples of the last 2 s are at least 60 percent of the window and their semitone standard deviation is under 0.35 THE SYSTEM SHALL classify `monotonia`, WHEN the last 4 samples are unvoiced THE SYSTEM SHALL classify `pausa`, and WHEN the standard deviation is at least 1.5 THE SYSTEM SHALL classify `variada`.",
+      "WHEN the live summary element (`role=\"status\"`, `aria-live=\"polite\"`) receives state changes faster than every 2 s THE SYSTEM SHALL update its text at most once per 2 s (asserted with fake timers).",
+      "WHEN `pnpm test:e2e:full tests/e2e/app/monitor.spec.ts` feeds the fake microphone with the generated WAV (130 Hz then 260 Hz) and the user presses record THE SYSTEM SHALL show `data-hz` of the frequency readout within 8 percent of 130 and within 8 percent of 260, show a rise of at least 9 semitones in `data-last-semitones` between a 130 Hz sample and a later 260 Hz sample taken after the first 4 s, and draw at least one pixel of the signal color on the canvas."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "node scripts/check-no-hex.mjs",
+      "pnpm build",
+      "pnpm test:e2e:full tests/e2e/app/monitor.spec.ts"
+    ],
+    "checkpoint": "step-10-live-monitor",
+    "files": [
+      "packages/shared/src/monitor/**",
+      "packages/shared/src/index.ts",
+      "apps/web/src/**",
+      "tests/e2e/app/monitor.spec.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E2-T4",
+    "title": "Línea fantasma y puntaje de seguimiento",
+    "epic": "02-nucleo-de-voz",
+    "dependencies": [
+      "E2-T3"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `generateGhost` runs twice with the same text, profile and marks THE SYSTEM SHALL return deeply equal results whose `durationMs` equals the word time (words divided by the midpoint ppm of the profile) plus the declared pauses, whose `contour.length` equals `round(durationMs / 100)`, and whose `wordTimes` are ordered and non-overlapping.",
+      "WHEN the same text is generated for `redes`, `tarima` and `eventos` THE SYSTEM SHALL give `redes` a maximum within its first 3 s of at least 60 percent of its global maximum and at least 1.5 times the peaks of `eventos`, give `eventos` a range of at most half the range of `redes`, and give `tarima` a contour value equal to its `floorSt` at the middle of every `larga` pause.",
+      "WHEN `heuristicMarks` runs on 'Pierde 3 millones por no cuidar a tu familia, actúa hoy.' THE SYSTEM SHALL mark '3' and 'millones' as `numero`, mark 'hoy' as `idea` and add a pause after 'familia'.",
+      "WHEN `trackingScore` compares a user contour identical to the ghost THE SYSTEM SHALL return 100, and WHEN a 4 s section of a 10 s ghost is shifted by +6 semitones THE SYSTEM SHALL return between 50 and 70 with `firstDivergence.second` within 0.5 s of the section start and `firstDivergence.word` equal to the word of `wordTimes` at that second.",
+      "WHEN the user contour is the ghost shifted in time by 300 ms THE SYSTEM SHALL score at least 95, and WHEN shifted by 800 ms THE SYSTEM SHALL score strictly lower than the 300 ms case (fixed temporal tolerance of plus or minus 3 samples).",
+      "WHEN `drawGhost` runs against a recording canvas context THE SYSTEM SHALL call `setLineDash` with a non-empty pattern, stroke with the color read from `--ghost`, and draw the text `FANTASMA`."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "node scripts/check-no-hex.mjs",
+      "pnpm build"
+    ],
+    "checkpoint": "step-11-ghost-line",
+    "files": [
+      "packages/shared/src/profiles.ts",
+      "packages/shared/src/ghost/**",
+      "packages/shared/src/index.ts",
+      "apps/web/src/monitor/**",
+      "apps/web/src/i18n/es.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E2-T5",
+    "title": "Medidores: frecuencia, muletillas y ritmo local",
+    "epic": "02-nucleo-de-voz",
+    "dependencies": [
+      "E2-T4"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `countFillers` runs over the table of at least 12 transcripts of `fillers.test.ts` THE SYSTEM SHALL return the exact `total` and `byWord` expected for each, counting 'eh', 'o sea' and 'digamos' always, counting 'este', 'bueno', 'pues', 'entonces' and 'como' only when isolated by commas or at the edge of an utterance, and not counting 'Compré este carro' nor 'como el sol'.",
+      "WHEN a personal lexicon is passed THE SYSTEM SHALL count only the words of that lexicon.",
+      "WHEN `computeRhythm` runs on 60 s of synthetic VAD frames made of 50 s of speech and 4 interior pauses of 2.5 s, with 125 words, THE SYSTEM SHALL return `ppm` 150 plus or minus 0.5, `pauseCount` 4 and `pauseRatio` 10/60 plus or minus 0.01, excluding leading and trailing silence.",
+      "WHEN `Vad` receives an RMS series that oscillates around the on threshold THE SYSTEM SHALL not toggle state more than once, and WHEN `rms` falls below the off threshold THE SYSTEM SHALL keep voiced for the 200 ms hangover before switching off.",
+      "WHEN `computeGreenZone` receives at least 30 voiced Hz samples THE SYSTEM SHALL return `lowHz < medianHz < highHz` using the 25th and 75th percentiles, and `classifyHz` SHALL return `baja`, `verde` or `alta` accordingly.",
+      "WHEN the Frecuencia meter renders in jsdom THE SYSTEM SHALL show the zone as text ('Zona verde', 'Baja' or 'Alta') in addition to color, in an element with `role=\"group\"` and an accessible name."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "node scripts/check-no-hex.mjs",
+      "pnpm build"
+    ],
+    "checkpoint": "step-12-meters",
+    "files": [
+      "packages/shared/src/meters/**",
+      "packages/shared/src/index.ts",
+      "apps/web/src/meters/**",
+      "apps/web/src/routes/Monitor.tsx",
+      "apps/web/src/i18n/es.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E3-T1",
+    "title": "Motores de coaching: vocabulario, reto, nivel y línea base",
+    "epic": "03-coaching-y-lanzamiento",
+    "dependencies": [
+      "E2-T5"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `detectComodin` runs over at least 8 transcripts THE SYSTEM SHALL return the exact count per word for 'cosa', 'eso', 'muy', 'también', 'bueno' and 'algo', and `suggestReplacements` on 'esa cosa que les queda a tus hijos' SHALL include 'carga', 'legado' and 'responsabilidad' and on 'muy importante' SHALL include 'crucial', 'decisivo' and 'innegociable'.",
+      "WHEN `activeVocabPer100` runs THE SYSTEM SHALL return the unique significant words per 100 words excluding stopwords and fillers, and `vocabGrowth(base, current)` SHALL equal (current - base) / base.",
+      "WHEN `usedChallengeWords` runs over a transcript THE SYSTEM SHALL detect each of 'legado', 'previsión', 'dignidad', 'amparo' and 'innegociable' ignoring accents and simple plurals, and `isoWeekKey(new Date('2026-10-04T12:00:00Z'))` SHALL equal '2026-W40', `isoWeekKey(new Date('2026-10-05T00:00:00Z'))` SHALL equal '2026-W41' and `isoWeekKey(new Date('2026-10-11T23:59:59Z'))` SHALL equal '2026-W41'.",
+      "WHEN `computeLevel` runs THE SYSTEM SHALL apply the weights 0.30, 0.25, 0.20, 0.15 and 0.10 and return Aspirante below 60, Orador from 60 to 79.99, Maestro from 80 to 89.99, and 'Arquitecto de la voz' only for 90 or more sustained for 2 weeks (otherwise Maestro).",
+      "WHEN the account is in its first week THE SYSTEM SHALL return `levelState` equal to `midiendo` and show no level, and `baselinePlan` SHALL return three free 180 s sessions on days 1 and 2, two Frase Perfecta sessions per profile on days 3 and 4, and the vocal sheet on day 5.",
+      "WHEN `buildVoiceSheet` receives baseline sessions with at least 30 voiced Hz samples for a profile THE SYSTEM SHALL return a sheet with `greenLowHz < medianHz < greenHighHz` and the target ppm of that profile, and for a profile with fewer than 30 samples THE SYSTEM SHALL return no sheet."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit packages/shared"
+    ],
+    "checkpoint": "step-13-coaching-engines",
+    "files": [
+      "packages/shared/src/coaching/**",
+      "packages/shared/src/index.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E3-T2",
+    "title": "Pasarela WebSocket de audio y adaptador STT",
+    "epic": "03-coaching-y-lanzamiento",
+    "dependencies": [
+      "E1-T5",
+      "E2-T1"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN a WebSocket to `/ws/audio` opens and no `auth` message arrives within `authTimeoutMs` (5000 ms by default) THE SYSTEM SHALL close it with code 4401 and never call `SttAdapter.open`.",
+      "WHEN the first message carries an invalid token THE SYSTEM SHALL close with 4401, and WHEN it carries a valid token for an email outside `ALLOWED_EMAILS` THE SYSTEM SHALL close with 4403, in both cases without opening an STT stream.",
+      "WHEN an authenticated client sends binary frames of 3200 bytes THE SYSTEM SHALL forward every byte to the adapter in order and send `transcript` messages, and WHEN a frame has odd length or more than 25000 bytes THE SYSTEM SHALL close with code 4400 without forwarding it.",
+      "WHEN the audio received in a session reaches 270 s (bytes divided by 32000, not wall-clock) THE SYSTEM SHALL send `{ type: 'limit' }`, end the STT stream and close with code 1000.",
+      "WHEN `usage/{yyyy-mm-dd}.sttSeconds` of the organization is at least `STT_DAILY_SECONDS_PER_ORG` THE SYSTEM SHALL send `{ type: 'error', code: 'quota_exceeded' }` and close with 4429 before opening the stream, and WHEN a stream closes THE SYSTEM SHALL add the streamed seconds and `cost_usd` (seconds divided by 60 times `STT_PRICE_USD_PER_MIN`) to that day document.",
+      "WHEN the client socket drops while recording THE SYSTEM SHALL have `useAudioSocket` retry after 500, 1000 and 2000 ms, expose the states `reconectando` and finally `fallo` after the third failed attempt (asserted with fake timers and a simulated `WebSocket`)."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "pnpm test:emu",
+      "pnpm build",
+      "node scripts/smoke-server.mjs"
+    ],
+    "checkpoint": "step-14-audio-gateway",
+    "files": [
+      "packages/shared/src/*.ts",
+      "apps/server/src/**",
+      "apps/server/tests/**",
+      "apps/server/scripts/spike-stt.ts",
+      "apps/web/src/audio/**"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E3-T3",
+    "title": "Sesiones, dicción y retención de audio",
+    "epic": "03-coaching-y-lanzamiento",
+    "dependencies": [
+      "E3-T2",
+      "E2-T5"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `dictionScore` runs with confidence 0.8, ppm 20 above the profile range and pause ratio inside its range THE SYSTEM SHALL return exactly 64.0 (weights 0.55, 0.25, 0.20), and WHEN all three factors are 1 THE SYSTEM SHALL return 100, never leaving the range 0 to 100.",
+      "WHEN `POST /api/v1/orgs/:orgId/sessions` is called with an `orgId` of which the caller is not a member THE SYSTEM SHALL answer 404 (not 403) and write nothing, and with the caller's own org THE SYSTEM SHALL create `sessions/{id}` with `state: 'recording'`.",
+      "WHEN `POST /api/v1/orgs/:orgId/sessions/:id/finish` receives a contour of 3000 points THE SYSTEM SHALL store `contour` as integers (semitones times 10, rounded) in a document smaller than 1 MiB with `state: 'done'`, and WHEN the contour has more than 3000 points THE SYSTEM SHALL answer 422 with code `validation_error`.",
+      "WHEN a session finishes, whether or not an audio object exists, THE SYSTEM SHALL delete `tmp/{orgId}/{sessionId}.wav` from Storage, and WHEN `DELETE /api/v1/orgs/:orgId/sessions/:id` runs THE SYSTEM SHALL hard-delete the session document, its report and its audio.",
+      "WHEN `POST /internal/sweep-audio` is called without a bearer accepted by the injected OIDC verifier THE SYSTEM SHALL answer 401 and delete nothing, and with a valid one (email equal to `SCHEDULER_SA_EMAIL`, audience equal to `SWEEP_AUDIENCE`) THE SYSTEM SHALL delete every object under `tmp/` older than 24 h and keep newer ones, answering `{ deleted: n }`.",
+      "WHEN the gateway stores session audio THE SYSTEM SHALL write a WAV (RIFF, 16000 Hz, mono, PCM16) that `decodeWavPcm16` turns back into the exact samples that were streamed."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "pnpm test:emu",
+      "pnpm build",
+      "node scripts/smoke-server.mjs"
+    ],
+    "checkpoint": "step-15-sessions-retention",
+    "files": [
+      "packages/shared/src/coaching/diction.ts",
+      "packages/shared/src/schemas/session.ts",
+      "packages/shared/src/index.ts",
+      "apps/server/src/**",
+      "apps/server/tests/**"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E3-T4",
+    "title": "Pasarela Gemini, informe estructurado y evaluación",
+    "epic": "03-coaching-y-lanzamiento",
+    "dependencies": [
+      "E3-T3",
+      "E3-T1"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `grep -rEn 'gemini-[0-9]' apps/server/src apps/web/src packages/shared/src` runs THE SYSTEM SHALL find no match (exit code 1), and `@google/genai` SHALL be imported by exactly one file, `apps/server/src/llm/gateway.ts`.",
+      "WHEN the transport returns malformed output and then valid output THE SYSTEM SHALL return the parsed value after exactly 2 transport calls, the second including the validator error, and WHEN it returns invalid output twice THE SYSTEM SHALL throw `LlmError` with code `invalid_output` after exactly 2 transport calls.",
+      "WHEN the transport fails with a 429 or 5xx error THE SYSTEM SHALL retry with exponential backoff and jitter up to 2 times, and WHEN it fails with a 400 error THE SYSTEM SHALL not retry.",
+      "WHEN any gateway call completes THE SYSTEM SHALL invoke the injected `recordCall(row)` exactly once with `feature`, `model` equal to the `GEMINI_MODEL` value, `tokensIn`, `tokensOut`, `tokensCached`, `latencyMs`, `status` and `createdAt`, and the Firestore writer that the server injects SHALL persist that row as `orgs/{orgId}/llm_calls/{id}`.",
+      "WHEN `POST /api/v1/orgs/:orgId/ghost` is called and the model fails THE SYSTEM SHALL answer 200 with `source: 'heuristic'` marks, and WHEN it succeeds `source: 'gemini'`; and WHEN a session finishes THE SYSTEM SHALL store `reports/{sessionId}` valid against `ReportSchema` with the `divergence` computed by `trackingScore`, and delete the temporary audio even if the model call fails.",
+      "WHEN `pnpm eval` runs in recorded mode with an in-memory `recordCall` and no Firestore THE SYSTEM SHALL score every case of `apps/server/evals/golden.json` (at least 20 cases), print pass rate, cost and p95 latency, and exit 0 only when the pass rate is at least the one committed in `apps/server/evals/baseline.json`."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "pnpm test:emu",
+      "pnpm build",
+      "node scripts/smoke-server.mjs",
+      "pnpm eval",
+      "grep -rEn 'gemini-[0-9]' apps/server/src apps/web/src packages/shared/src; test $? -eq 1",
+      "test \"$(grep -rl '@google/genai' apps/server/src | wc -l | tr -d ' ')\" = 1",
+      "grep -rl '@google/genai' apps/server/src | grep -qx 'apps/server/src/llm/gateway.ts'"
+    ],
+    "checkpoint": "step-16-gemini-gateway",
+    "files": [
+      "packages/shared/src/llm-schemas.ts",
+      "packages/shared/src/index.ts",
+      "apps/server/src/**",
+      "apps/server/tests/**",
+      "apps/server/evals/**"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E3-T5",
+    "title": "Veredicto, repertorio de 10 frases y rutas de frases",
+    "epic": "03-coaching-y-lanzamiento",
+    "dependencies": [
+      "E3-T4",
+      "E2-T5"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `evaluateVerdict` runs THE SYSTEM SHALL return `perfect: true` only when tracking is at least 85, diction is at least 85, fillers equal 0 and ppm is inside the profile range, treating 85 as perfect and 84.99 as not perfect, each failing condition alone SHALL give `perfect: false` with that condition in `failedChecks`, and a not-perfect result SHALL carry the `divergence` second and word computed by `trackingScore`.",
+      "WHEN `REPERTOIRE_SEED` is read THE SYSTEM SHALL contain exactly 10 phrases with unique ids, each of 12 to 40 words, and `generateGhost` SHALL produce a ghost for each of them in all three profiles without throwing.",
+      "WHEN a Frase Perfecta session reaches a perfect verdict THE SYSTEM SHALL store its time-normalized, semitone-relative contour as `bestRunContour` of the phrase and `ghostForPhrase(phrase, 'mi-mejor-yo')` SHALL return it, and WHEN the verdict is not perfect or no best run exists THE SYSTEM SHALL leave the phrase unchanged and fall back to the profile template.",
+      "WHEN `GET /api/v1/orgs/:orgId/phrases` runs for an org without phrases THE SYSTEM SHALL seed the 10 phrases of the repertoire and a second call SHALL leave exactly 10, `POST` and `DELETE` SHALL add and remove an own phrase, and WHEN the `orgId` belongs to another org THE SYSTEM SHALL answer 404 and write nothing."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "pnpm test:emu",
+      "pnpm build",
+      "node scripts/smoke-server.mjs"
+    ],
+    "checkpoint": "step-17-verdict-phrases",
+    "files": [
+      "packages/shared/src/coaching/**",
+      "packages/shared/src/index.ts",
+      "apps/server/src/**",
+      "apps/server/tests/emulator/phrases.test.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E3-T6",
+    "title": "Frase Perfecta en pantalla y flujo de grabación",
+    "epic": "03-coaching-y-lanzamiento",
+    "dependencies": [
+      "E3-T5"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN the `Verdict` component renders a perfect result THE SYSTEM SHALL show the text `ORATORIA PERFECTA ✓` exactly once with a `role=\"status\"` announcement, and WHEN the result is not perfect THE SYSTEM SHALL list each failed check as text and `segundo N · palabra «X»` for the divergence.",
+      "WHEN `useRecordingSession` runs with a simulated `MicCapture`, `WebSocket` and `apiFetch` THE SYSTEM SHALL, in this order, call `POST …/sessions`, send `auth` with the returned `sessionId` as the first socket message, forward every frame as binary, send `end`, call `POST …/sessions/:id/finish` with the metrics computed by `computeRhythm`, `countFillers`, `trackingScore`, `activeVocabPer100` and `detectComodin`, and navigate to `/sesiones/:id`, and the Dicción meter SHALL show `dictionScore` computed from the utterance confidences instead of a dash.",
+      "WHEN `FrasePerfecta` renders in jsdom THE SYSTEM SHALL show the three steps in an ordered list, move focus to the heading of the active step when it changes, and offer the 10 phrases of the repertoire in step 1.",
+      "WHEN `pnpm test:e2e:full tests/e2e/app/perfect-phrase.spec.ts` selects Tarima, loads phrase 1 and records the fake microphone for 6 s THE SYSTEM SHALL navigate to `/sesiones/:id` showing a not-perfect verdict with a divergence second and word, and the session document SHALL be readable through `GET /api/v1/orgs/:orgId/sessions/:id`."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "node scripts/check-no-hex.mjs",
+      "pnpm build",
+      "pnpm test:e2e:full tests/e2e/app/perfect-phrase.spec.ts"
+    ],
+    "checkpoint": "step-18-perfect-phrase-ui",
+    "files": [
+      "apps/web/src/**",
+      "tests/e2e/app/perfect-phrase.spec.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E3-T7",
+    "title": "Rutas y pantallas del coaching; exportar y borrar cuenta",
+    "epic": "03-coaching-y-lanzamiento",
+    "dependencies": [
+      "E3-T6"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `GET /api/v1/orgs/:orgId/export` runs THE SYSTEM SHALL return JSON with the user, the org, the members and every collection of `COLLECTION_NAMES`, and WHEN `DELETE /api/v1/orgs/:orgId` runs with `{ confirm: 'BORRAR' }` THE SYSTEM SHALL leave no document under the organization, delete the Auth user and the `tmp/{orgId}/` audio, and answer 401 to a later `POST /api/v1/session` with the old token.",
+      "WHEN `PUT /api/v1/orgs/:orgId/voice-sheet/:profileId` and `POST /api/v1/orgs/:orgId/baseline/complete` run for the caller's org THE SYSTEM SHALL persist one `voiceSheet` document per profile that has enough samples, and WHEN the `orgId` belongs to another org THE SYSTEM SHALL answer 404 and write nothing.",
+      "WHEN `GET` and `PUT` run on `/api/v1/orgs/:orgId/vocab` and `/api/v1/orgs/:orgId/challenge` THE SYSTEM SHALL persist and return the personal dictionary and the weekly challenge keyed by `isoWeekKey(now)`, answering 422 with code `validation_error` on invalid input.",
+      "WHEN `Inicio` renders in jsdom for `levelState` equal to `midiendo` THE SYSTEM SHALL show 'Midiendo tu línea base' and no level, and otherwise THE SYSTEM SHALL show the level band, and `Vocabulario` SHALL show the comodín counts as text.",
+      "WHEN `pnpm test:e2e:full tests/e2e/app/baseline.spec.ts` runs for a new user THE SYSTEM SHALL show 'Midiendo tu línea base' on Inicio and export from Ajustes a JSON file with the keys user, org, members and every collection name."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "pnpm test:emu",
+      "node scripts/check-no-hex.mjs",
+      "pnpm build",
+      "pnpm test:e2e:full tests/e2e/app/baseline.spec.ts"
+    ],
+    "checkpoint": "step-19-coaching-routes-web",
+    "files": [
+      "apps/server/src/routes/**",
+      "apps/server/src/app.ts",
+      "apps/server/tests/emulator/**",
+      "apps/web/src/**",
+      "tests/e2e/app/baseline.spec.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E3-T8",
+    "title": "Límites de tasa, presupuesto de bundle y pasada a11y",
+    "epic": "03-coaching-y-lanzamiento",
+    "dependencies": [
+      "E3-T7"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN the 61st authenticated request from one uid arrives within 60 s THE SYSTEM SHALL answer 429 with code `rate_limited` and a `retry-after` header, while the first 60 pass, and WHEN the window elapses (injected clock) THE SYSTEM SHALL accept requests again.",
+      "WHEN the limiter is mounted THE SYSTEM SHALL keep `/health`, `/health/deep` and `/internal/*` outside the limit and key `POST /api/v1/session` by client IP at 10 per minute.",
+      "WHEN `pnpm build` and then `node deploy/check-bundle-budget.mjs` run THE SYSTEM SHALL exit 0 with the gzip size of `apps/web/dist/assets/*.js` at most 600 KB and of `*.css` at most 60 KB.",
+      "WHEN `pnpm test:e2e:full tests/e2e/app/a11y.spec.ts` reads the authenticated routes from `apps/web/src/routes.ts` as text, creates one session through the API for `/sesiones/:id`, and scans every route in the dark and light themes at 375 px THE SYSTEM SHALL report 0 axe violations for the tags wcag2a, wcag2aa, wcag21aa and wcag22aa, reach the skip link with the first Tab and find `outline-width` of at least 2px on every focused element."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test:unit",
+      "pnpm test:emu",
+      "pnpm build",
+      "node deploy/check-bundle-budget.mjs",
+      "pnpm test:e2e:full tests/e2e/app/a11y.spec.ts"
+    ],
+    "checkpoint": "step-20-hardening-quality",
+    "files": [
+      "apps/server/src/*.ts",
+      "apps/server/tests/e2e-server.ts",
+      "deploy/check-bundle-budget.mjs",
+      "tests/e2e/app/a11y.spec.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E3-T9",
+    "title": "Scripts de entrega, runbook y CI",
+    "epic": "03-coaching-y-lanzamiento",
+    "dependencies": [
+      "E3-T8"
+    ],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `pnpm test:unit tests/repo/deploy-config.test.ts` runs THE SYSTEM SHALL assert that `bash -n` exits 0 for every `deploy/*.sh`, that `deploy/storage-lifecycle.json` has a Delete rule with age 1 and prefix `tmp/`, that `deploy/budget-alerts.sh` sets thresholds 0.5, 0.8 and 1.0, that `deploy/storage-setup.sh` contains `--soft-delete-duration=0`, that the deploy scripts use region `us-central1`, that `deploy/deploy-server.sh` contains `--max-instances 3`, `--min-instances 0` and `--timeout 600`, that `deploy/scheduler.sh` names the job `pulso-sweep-audio`, and that the `CMD` of the `Dockerfile` equals `main` and `scripts.start` of `apps/server/package.json` (`dist/index.js`).",
+      "WHEN `pnpm test:unit tests/repo/ci-parity.test.ts` runs THE SYSTEM SHALL assert that `.github/workflows/ci.yml` runs every command of the automated global gate as an ordered subsequence (extra setup steps are allowed, among them the installation of JDK and Chromium and `test -f .env || cp .env.example .env` before `pnpm build`, which it SHALL contain), reads the Node version from `.nvmrc` and runs `pnpm eval`.",
+      "WHEN `pnpm test:unit tests/repo/runbook.test.ts` runs THE SYSTEM SHALL find in `deploy/RUNBOOK.md` the sections `stt-cuota-agotada`, `error-rate-5xx` and `creditos-vencen`, each with at least one fenced command block.",
+      "WHEN the automated global gate runs in the order of the blueprint THE SYSTEM SHALL exit 0 on every command, from `pnpm install --frozen-lockfile` to `pnpm test:e2e:full`."
+    ],
+    "verify": [
+      "pnpm install --frozen-lockfile",
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm test",
+      "pnpm build",
+      "node scripts/smoke-server.mjs",
+      "node scripts/check-pwa.mjs",
+      "node scripts/check-no-hex.mjs",
+      "node deploy/check-bundle-budget.mjs",
+      "pnpm eval",
+      "pnpm test:e2e",
+      "pnpm test:e2e:full"
+    ],
+    "checkpoint": "step-21-delivery-ci",
+    "files": [
+      "deploy/*.sh",
+      "deploy/storage-lifecycle.json",
+      "deploy/RUNBOOK.md",
+      ".github/workflows/ci.yml",
+      "tests/repo/*.test.ts"
+    ],
+    "status": "pending"
+  }
+]

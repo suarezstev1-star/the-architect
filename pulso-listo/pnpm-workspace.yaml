@@ -1,0 +1,14 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "!blueprints/**"
+
+# pnpm 11: the key is `allowBuilds` (NOT `onlyBuiltDependencies`, which is ignored silently).
+# Bootstrap runs `pnpm approve-builds --all` after the first install to add whatever else
+# the resolved tree asks for; the entries below are the ones expected from this stack.
+allowBuilds:
+  "@firebase/util": true
+  "@google/genai": true
+  esbuild: true
+  protobufjs: true
+  re2: true
