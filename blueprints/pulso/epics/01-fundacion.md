@@ -60,7 +60,7 @@ apps/web/
   src/main.tsx, App.tsx, styles/tokens.css, app.css, i18n/es.ts, components/layout/AppShell.tsx   # NUEVO paso 2 (main.tsx, App.tsx, es.ts, AppShell se editan después)
   src/lib/env.ts, firebase.ts, api.ts, auth/AuthProvider.tsx, auth/RequireAuth.tsx, routes/Entrar.tsx, router.tsx   # NUEVO paso 6
   src/routes.ts, components/PageState.tsx, lib/theme.ts, routes/Ajustes.tsx, pwa.ts, vite-env.d.ts   # NUEVO paso 7
-tests/e2e/global-setup.ts (existe), ui/layout.spec.ts (paso 2), app/auth.spec.ts (paso 6), app/shell.spec.ts (paso 7)
+tests/e2e/global-setup.ts (existe), ui/layout.spec.ts (paso 2), app/auth.spec.ts (paso 6), app/shell.spec.ts y ui/pwa.spec.ts (paso 7; pwa.spec.ts corre contra el bundle de producción en el puerto 4173)
 tests/repo/firestore-indexes.test.ts (paso 3), tokens-parity.test.ts (paso 7)
 ```
 
@@ -152,6 +152,8 @@ Primero la verdad del paso: el árbol `workspace/` ya está copiado en la raíz 
 
 Convención de imports (decidida una vez, ver §19.6): los especificadores relativos llevan la extensión `.ts` (`import { createApp } from "./app.ts"`); `@pulso/shared` se importa siempre desde el paquete, nunca por ruta relativa.
 
+**Una sola sentada:** es un único corte vertical mínimo (un esquema, una ruta, una página y un script de humo); ningún archivo supera unas pocas líneas y todos se verifican con el mismo `Verify`.
+
 **Files**
 - `packages/shared/src/**` — nuevo o editado según el detalle anterior
 - `apps/server/src/**` — nuevo o editado según el detalle anterior
@@ -226,6 +228,8 @@ Sistema visual "Monitor clínico / lujo sobrio". Antes de empezar, si la skill `
 - `scripts/check-no-hex.mjs` — recorre `apps/web/src/**` (`.ts`, `.tsx`, `.css`) excepto `styles/tokens.css` y `*.test.ts(x)`, más `apps/web/index.html`, y falla (exit 1) si encuentra `/#[0-9a-fA-F]{3,8}\b/`; imprime archivo:línea de cada hallazgo.
 - `tests/e2e/ui/layout.spec.ts` — para cada viewport `375x812` y `1440x900`, abre `/` y afirma `document.documentElement.scrollWidth === document.documentElement.clientWidth`.
 
+**Una sola sentada:** un archivo de tokens y su prueba de contraste, un script de cabecera y un shell vacío; no hay lógica de producto.
+
 **Files**
 - `apps/web/index.html` — nuevo o editado según el detalle anterior
 - `apps/web/public/theme-init.js` — nuevo o editado según el detalle anterior
@@ -278,6 +282,8 @@ Capa de datos con aislamiento por organización. Firestore con el SDK oficial, *
 - `tests/repo/firestore-indexes.test.ts` — lee `firestore.indexes.json` y afirma la exención de índice (`fieldOverrides` con `collectionGroup: "sessions"`, `fieldPath: "contour"`, `indexes: []`) y que el índice compuesto `profileId ASC + startedAt DESC` existe.
 - `packages/shared/src/schemas/schemas.test.ts` — para cada esquema, un ejemplo válido de §4 parsea y los casos inválidos fallan: `contour` con 3001 puntos, `plan: "pro"`, `role: "admin"`, `themePreference: "neon"`, `profileId: "otro"`.
 
+**Una sola sentada:** los esquemas del directorio `schemas/` siguen un único patrón (zod + tipo inferido) y las dos pruebas de emulador recorren `COLLECTION_NAMES`.
+
 **Files**
 - `packages/shared/src/schemas/**` — nuevo o editado según el detalle anterior
 - `apps/server/src/data/org-store.ts` — nuevo o editado según el detalle anterior
@@ -326,9 +332,11 @@ Entorno validado al arrancar, logger con id de petición y comprobación profund
 - `apps/server/src/load-dotenv.ts` — calcula `const envPath = new URL("../../../.env", import.meta.url)` (la raíz del repositorio, a la misma profundidad desde `src/` y desde `dist/`) y, si `existsSync(envPath)`, llama a `process.loadEnvFile(envPath)` (no sobrescribe variables ya presentes). Se importa como **primer** import (efecto lateral) en `index.ts` y en todo script/entrypoint (`scripts/*.ts`, `evals/run.ts`, `tests/e2e-server.ts`).
 - `apps/server/src/logger.ts` — pino en JSON con `redact` para `req.headers.authorization`, `token`, `idToken`; middleware Hono que genera `requestId` (`crypto.randomUUID()`), lo guarda en el contexto, lo devuelve en el header `x-request-id` y crea un logger hijo con `request_id`; registra una línea `request.completed` con `duration_ms` y `status`.
 - `apps/server/src/firebase.ts` — `getDb()` inicializa `firebase-admin` una sola vez con `projectId = GOOGLE_CLOUD_PROJECT` (sin credenciales en local: el emulador no las necesita). Es el **único** módulo que importa `firebase-admin/app`.
-- `apps/server/src/app.ts` y `apps/server/src/index.ts` (editar) — `index.ts` pasa a usar `loadEnv()` y el logger (si `loadEnv` lanza, imprime el mensaje y sale con código 1); `app.ts` monta el middleware del logger y añade `GET /health/deep`: lee un documento centinela (`db.collection('_health').doc('ping').get()`, no lo crea) y responde `{ ok: true, firestore: "up" }`; si lanza, responde 503 `{ ok: false, firestore: "down" }`. `createApp` recibe `db` por dependencia (`deps.db`, opcional: sin él, `/health/deep` responde 503, y las pruebas del paso 1 siguen pasando).
+- `apps/server/src/app.ts` y `apps/server/src/index.ts` (editar) — `index.ts` pasa a usar `loadEnv()` y el logger (si `loadEnv` lanza, imprime el mensaje y sale con código 1); `app.ts` monta el middleware del logger y añade `GET /health/deep`: lee un documento centinela (`db.collection('_health').doc('ping').get()`, no lo crea) y responde `{ ok: true, firestore: "up" }`; si lanza, responde 503 `{ ok: false, firestore: "down" }`. `createApp` recibe `db` por dependencia (`deps.db`). **Regla de dependencias:** todas las `deps.*` posteriores a `sha` (`db`, y más adelante `adminAuth`, `stt`, `oidcVerifier`, `llm`) son opcionales; la ruta que necesita una dependencia ausente responde 503 `upstream_unavailable` (aquí, `/health/deep` responde 503 sin `db`). El `app.test.ts` del paso 1 no cambia.
 - `apps/server/tests/helpers/env.ts` — `baseEnv(overrides?)`: parsea `.env.example` (solo las claves que no empiezan por `VITE_`) y devuelve un objeto con **todas** las claves del servidor como cadenas. Es la entrada válida de las pruebas de `loadEnv`; los pasos posteriores añaden claves a `.env.example` (ya están) y nunca editan las pruebas anteriores.
 - `apps/server/src/env.test.ts` — con `baseEnv()`: sin `GOOGLE_CLOUD_PROJECT` lanza nombrándola; con `baseEnv()` completo devuelve el objeto tipado con los valores por defecto. `logger.test.ts` captura la salida con un destino en memoria. `apps/server/tests/emulator/health.test.ts` prueba `/health/deep` contra el emulador y con un `db` simulado que lanza.
+
+**Una sola sentada:** cuatro módulos pequeños de arranque (entorno, carga de `.env`, logger, cliente de Firestore) más dos ediciones de una línea y tres archivos de prueba que cubren un comportamiento cada uno.
 
 **Files**
 - `apps/server/src/*.ts` — nuevo o editado según el detalle anterior
@@ -376,10 +384,12 @@ Un solo proveedor de identidad: Firebase Auth con Google. El servidor verifica e
 - `apps/server/src/errors.ts` — clase `HttpError(status, code, message)` y manejador `app.onError` que responde SIEMPRE `{ error: { code, message, requestId } }`. Códigos: `unauthenticated` 401, `forbidden_email` 403, `not_found` 404, `validation_error` 422, `quota_exceeded` 429, `rate_limited` 429, `upstream_unavailable` 503, `internal` 500.
 - `apps/server/src/auth/verify.ts` — middleware `requireUser({ checkRevoked })`: exige `Authorization: Bearer <idToken>`, llama a `getAdminAuth().verifyIdToken(token, checkRevoked)`, exige `email` presente y `email_verified === true`, comprueba que el email (minúsculas) esté en `ALLOWED_EMAILS` (si no, `HttpError(403, "forbidden_email")` sin tocar Firestore) y deja `{ uid, email, name }` en el contexto. `POST /api/v1/session` usa `checkRevoked: true`; el resto, `false`. `getAdminAuth()` se añade a `firebase.ts`.
 - `apps/server/src/auth/provision.ts` — `provisionUser(db, user)`: transacción Firestore que, si `users/{uid}` no existe, crea `users/{uid}` (`personalOrgId`, `themePreference: "dark"`, `sttLocale: "es-US"`, `createdAt`), `orgs/{orgId}` (`orgId = crypto.randomUUID()`, `name` = "Mi espacio", `plan: "free"`, `ownerUid`, `createdAt`) y `orgs/{orgId}/members/{uid}` (`role: "owner"`), usando `createOrgStore` para las rutas de la organización; si ya existe, devuelve el `personalOrgId` sin escribir. Idempotente también con dos llamadas concurrentes (la lectura de `users/{uid}` ocurre dentro de la transacción).
-- `apps/server/src/routes/session.ts` y `apps/server/src/app.ts` (editar) — `POST /api/v1/session` (provisiona y devuelve `{ user, org }`) y `GET /api/v1/me` (404 si no existe el usuario). `app.ts` monta CORS (`hono/cors`) con `origin` ∈ `WEB_ORIGINS`, `allowHeaders: ["authorization","content-type"]`, y el manejador de errores; `createApp` recibe `deps.adminAuth`.
+- `apps/server/src/routes/session.ts` y `apps/server/src/app.ts` (editar) — `POST /api/v1/session` (provisiona y devuelve `{ user, org }`) y `GET /api/v1/me` (404 si no existe el usuario). `app.ts` monta CORS (`hono/cors`) con `origin` ∈ `WEB_ORIGINS`, `allowHeaders: ["authorization","content-type"]`, y el manejador de errores; `createApp` recibe `deps.adminAuth` (opcional como el resto de `deps.*` posteriores a `sha`; sin él, las rutas autenticadas responden 503 `upstream_unavailable`).
 - `apps/server/tests/helpers/emulator-auth.ts` — `createEmulatorUser(email)`: POST a `http://${FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake` con `{ email, password: "pulso-test-1234", returnSecureToken: true }`, marca el email como verificado con `accounts:update` (`emailVerified: true`) y devuelve `{ uid, idToken }`.
 - `apps/server/tests/emulator/auth.test.ts` — cubre las condiciones de aceptación contra el emulador de Auth y de Firestore; el criterio de `ALLOWED_EMAILS` vacío usa `baseEnv()` (paso 4).
 - `apps/server/tests/e2e-server.ts` — entrypoint **de prueba** (no es código de producto) que importa `../src/load-dotenv.ts` primero, construye las dependencias reales apuntando a los emuladores y arranca el servidor en `PORT`; los pasos 14 y 16 le inyectan los dobles de STT y de LLM. `pnpm --filter @pulso/server start:e2e` lo ejecuta (lo usa el e2e del paso 6).
+
+**Una sola sentada:** es una sola cadena de autenticación del servidor (verificar → permitir → aprovisionar) con su ayudante de pruebas y su entrypoint de prueba; la web no se toca.
 
 **Files**
 - `apps/server/src/auth/**` — nuevo o editado según el detalle anterior
@@ -428,9 +438,9 @@ La web inicia sesión con Google, llama a `POST /api/v1/session` y protege las r
 - `apps/web/src/lib/env.ts` — zod sobre `import.meta.env`: `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID`, `VITE_USE_EMULATORS`, `VITE_API_URL`, `VITE_WS_URL` (las dos últimas pueden estar vacías); si falta una obligatoria, lanza nombrándola. `lib/env.test.ts` lo prueba con los valores del setup y con `vi.stubEnv` para la ausencia de `VITE_FIREBASE_PROJECT_ID`.
 - `apps/web/src/lib/firebase.ts` — `initializeApp`, `getAuth`, `connectAuthEmulator("http://127.0.0.1:9099", { disableWarnings: true })` si `VITE_USE_EMULATORS === "true"`, `getFirestore` + `connectFirestoreEmulator("127.0.0.1", 8080)`. `lib/api.ts` — `apiFetch(path, init)` añade el `Authorization: Bearer` del usuario actual y usa `VITE_API_URL` como base.
 - `apps/web/src/auth/AuthProvider.tsx` — estado `cargando | anonimo | autenticado`; tras iniciar sesión llama a `POST /api/v1/session` y guarda `{ user, org }`. `apps/web/src/auth/RequireAuth.tsx` — si anónimo: `<Navigate to={"/entrar?next=" + encodeURIComponent(location.pathname + location.search)} />`; mientras carga muestra `PageState` en `cargando`.
-- `apps/web/src/routes/Entrar.tsx` — botón "Entrar con Google": `signInWithPopup` en escritorio, `signInWithRedirect` + `getRedirectResult` cuando `navigator.standalone` o iOS; y, **solo** si `VITE_USE_EMULATORS === "true"`, un botón "Entrar con cuenta de prueba" que crea/entra con `e2e@pulso.test` / `pulso-test-1234` contra el emulador. Un 403 `forbidden_email` muestra "Esta cuenta no está autorizada" con la opción de salir.
+- `apps/web/src/routes/Entrar.tsx` — botón "Entrar con Google": `signInWithPopup` en escritorio, `signInWithRedirect` + `getRedirectResult` cuando `navigator.standalone` o iOS; y, **solo** dentro de la rama `VITE_USE_EMULATORS === "true"`, un botón "Entrar con cuenta de prueba" que crea o inicia sesión con `e2e@pulso.test` / `pulso-test-1234` (`createUserWithEmailAndPassword` / `signInWithEmailAndPassword`) contra el emulador y **a continuación** marca el correo como verificado (el emulador emite `email_verified: false` y `requireUser` exige `true`): `POST http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:update?key=fake` con `{ idToken, emailVerified: true }`, luego `getIdToken(true)` para refrescar el token y solo entonces `POST /api/v1/session`. Un 403 `forbidden_email` muestra "Esta cuenta no está autorizada" con la opción de salir.
 - `apps/web/src/router.tsx` — `createBrowserRouter`: `/entrar` pública; `/` y `/monitor` envueltas en `RequireAuth` con `AppShell`. Las cadenas nuevas van a `i18n/es.ts`.
-- `apps/web/src/auth/RequireAuth.test.tsx` — con `MemoryRouter`: anónimo en `/monitor` termina en `/entrar?next=%2Fmonitor`; autenticado renderiza el hijo. `routes/Entrar.test.tsx` — el botón de cuenta de prueba no existe cuando `VITE_USE_EMULATORS` es `"false"`.
+- `apps/web/src/auth/RequireAuth.test.tsx` — con `MemoryRouter`: anónimo en `/monitor` termina en `/entrar?next=%2Fmonitor`; autenticado renderiza el hijo. `routes/Entrar.test.tsx` — el botón de cuenta de prueba no existe cuando `VITE_USE_EMULATORS` es `"false"`, y con `"true"` verifica con `fetch` y Auth simulados el orden: inicio de sesión → `accounts:update` con `emailVerified: true` → `getIdToken(true)` → `POST /api/v1/session`.
 - `tests/e2e/app/auth.spec.ts` — abre `/monitor` anónimo, afirma la URL `/entrar?next=%2Fmonitor`, pulsa el botón de prueba y afirma volver a `/monitor`.
 
 **Files**
@@ -445,6 +455,7 @@ Copiado literalmente del arreglo `acceptance` de esta tarea en `tasks.json`. Cad
 2. **WHEN** `apps/web/src/lib/env.ts` is imported in a jsdom test **THE SYSTEM SHALL** parse the `VITE_*` defaults that `apps/web/tests/setup.ts` takes from `.env.example`, and **WHEN** `VITE_FIREBASE_PROJECT_ID` is absent **THE SYSTEM SHALL** throw an error naming it.
 3. **WHEN** an anonymous user renders a route wrapped by `RequireAuth` at `/monitor` **THE SYSTEM SHALL** navigate to `/entrar?next=%2Fmonitor`, and **WHEN** the user is authenticated **THE SYSTEM SHALL** render the child.
 4. **WHEN** `VITE_USE_EMULATORS` is `false` **THE SYSTEM SHALL** NOT render the button 'Entrar con cuenta de prueba' on `/entrar`.
+5. **WHEN**, inside the `VITE_USE_EMULATORS === 'true'` branch only, the test sign-in has created or signed in `e2e@pulso.test` **THE SYSTEM SHALL** call `POST http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:update?key=fake` with `{ idToken, emailVerified: true }`, refresh the token with `getIdToken(true)` and only then call `POST /api/v1/session`, so that the `email_verified` check of the server passes (asserted in `Entrar.test.tsx` with simulated `fetch` and Auth, and by the e2e sign-in succeeding).
 
 **Verify** — cada comando, en orden, desde la raíz del proyecto. Cada uno termina en 0 cuando la tarea es correcta; que el último termine en 0 es lo que da la tarea por hecha.
 
@@ -477,18 +488,21 @@ Shell autenticado completo y PWA instalable. Aquí se fija el **manifiesto de ru
 - `apps/web/src/routes.ts` — manifiesto: array de `{ path, titleKey, auth: "publica" | "usuario", rendering: "cliente" }` para `/entrar`, `/`, `/monitor`, `/frase-perfecta`, `/sesiones/:id`, `/repertorio`, `/vocabulario`, `/baseline`, `/ajustes`. Todas son **cliente** (SPA tras login, sin SEO). `router.tsx` se construye A PARTIR de este manifiesto; un test recorre el manifiesto y afirma que cada ruta resuelve a un componente.
 - `apps/web/src/components/PageState.tsx` — `PageState` con las variantes `cargando` (esqueleto con las mismas dimensiones que el contenido real), `vacio` (mensaje + acción principal) y `error` (mensaje + reintentar + `requestId` si lo hay). Cada pantalla pendiente de pasos posteriores renderiza hoy `PageState variant="vacio"` con su `<h1>` (un único `h1` por ruta; `document.title` propio por ruta).
 - `apps/web/src/components/layout/AppShell.tsx` (editar) — navegación completa (Inicio, Monitor, Frase Perfecta, Repertorio, Vocabulario, Baseline, Ajustes) con `aria-current="page"`, objetivos táctiles ≥ 48 px en móvil, cabecera con el menú de la cuenta.
-- `apps/web/src/lib/theme.ts` — `applyTheme(pref)`: escribe `localStorage["pulso-theme"]` y `data-theme` en `<html>` (resolviendo `system` con `matchMedia`); `routes/Ajustes.tsx` — selector de tema (oscuro / claro / sistema), idioma STT (`es-US`, `es-MX`, `es-419`; guardado en `users.sttLocale`) y, por ahora, los botones "Exportar mis datos" y "Borrar mi cuenta" deshabilitados con texto explicativo (los activa el paso 18). Al cambiar se llama a `PATCH /api/v1/me`.
+- `apps/web/src/lib/theme.ts` — `applyTheme(pref)`: escribe `localStorage["pulso-theme"]` y `data-theme` en `<html>` (resolviendo `system` con `matchMedia`); `routes/Ajustes.tsx` — selector de tema (oscuro / claro / sistema), idioma STT (`es-US`, `es-MX`, `es-419`; guardado en `users.sttLocale`) y, por ahora, los botones "Exportar mis datos" y "Borrar mi cuenta" deshabilitados con texto explicativo (los activa el paso 19). Al cambiar se llama a `PATCH /api/v1/me`.
 - `apps/server/src/routes/session.ts` (editar) — `PATCH /api/v1/me` con `@hono/zod-validator`: cuerpo `{ themePreference?: "dark"|"light"|"system", sttLocale?: "es-US"|"es-MX"|"es-419" }`, al menos un campo; escribe en `users/{uid}`; valor inválido → 422 `validation_error` sin escribir.
 - PWA — `apps/web/src/pwa.ts` registra el service worker con `registerSW` de `virtual:pwa-register` (solo en producción); `vite-plugin-pwa` ya está configurado en `vite.config.ts` (emitido); para tipar `virtual:pwa-register` se crea `apps/web/src/vite-env.d.ts` con `/// <reference types="vite-plugin-pwa/client" />` (si el paquete expone ese módulo de tipos con otro nombre, léelo en `node_modules/vite-plugin-pwa/package.json`, campo `exports`). `scripts/check-pwa.mjs` lee `apps/web/dist/manifest.webmanifest` y `apps/web/dist/sw.js` y valida el contrato del criterio 1.
+- `tests/e2e/ui/pwa.spec.ts` — se ejecuta contra el **bundle de producción** que sirve `vite preview` en el puerto 4173 (`playwright.config.ts` ya añade ese `webServer` cuando existe `apps/web/dist`; el proyecto `ui` es el predeterminado). No importa código del producto: abre `http://127.0.0.1:4173/entrar`, espera `await navigator.serviceWorker.ready` y comprueba que `fetch('/sw.js')` responde 200. Necesita un `.env` (Bootstrap lo crea desde `.env.example`: el build de producción lee `VITE_*` de `.env`).
 - `tests/repo/tokens-parity.test.ts` — extrae `manifestColor` de `apps/web/vite.config.ts` y `--p-dark-bg` de `tokens.css` y exige igualdad (sin mayúsculas/minúsculas).
 - `tests/e2e/app/shell.spec.ts` — con el usuario de prueba: recorre `/`, `/ajustes` y `/entrar` (esta última sin sesión) a 375 y 1440 px sin scroll horizontal; ejecuta `AxeBuilder` con las etiquetas `wcag2a, wcag2aa, wcag21aa, wcag22aa` y exige `violations` vacío; cambia el tema en Ajustes, recarga y comprueba `data-theme` en `DOMContentLoaded`.
 
+**Una sola sentada:** reúne el manifiesto de rutas, un componente de estados, la pantalla de Ajustes y la PWA; las pantallas pendientes son marcadores con el mismo componente, y cada prueba cubre un contrato.
+
 **Files**
 - `apps/web/src/**` — nuevo o editado según el detalle anterior
-- `apps/server/src/**` — nuevo o editado según el detalle anterior
+- `apps/server/src/routes/session.ts` — nuevo o editado según el detalle anterior
 - `scripts/check-pwa.mjs` — nuevo o editado según el detalle anterior
 - `tests/repo/tokens-parity.test.ts` — nuevo o editado según el detalle anterior
-- `tests/e2e/app/shell.spec.ts` — nuevo o editado según el detalle anterior
+- `tests/e2e/*/{shell,pwa}.spec.ts` — nuevo o editado según el detalle anterior
 
 **Acceptance**
 
@@ -498,8 +512,8 @@ Copiado literalmente del arreglo `acceptance` de esta tarea en `tasks.json`. Cad
 2. **WHEN** `pnpm test:unit tests/repo/tokens-parity.test.ts` runs **THE SYSTEM SHALL** assert that `theme_color` and `background_color` in `apps/web/vite.config.ts` equal the dark `--p-dark-bg` hex of `tokens.css`.
 3. **WHEN** each route of `apps/web/src/routes.ts` renders in jsdom **THE SYSTEM SHALL** produce exactly one `h1`, a `main` landmark with id `contenido`, and a skip link as the first focusable element.
 4. **WHEN** `PATCH /api/v1/me` receives `{ themePreference: 'light', sttLocale: 'es-MX' }` with a valid token **THE SYSTEM SHALL** persist both on `users/{uid}` and answer 200, and **WHEN** it receives `{ themePreference: 'neon' }` **THE SYSTEM SHALL** answer 422 with code `validation_error` and persist nothing.
-5. **WHEN** the signed-in user changes the theme in Ajustes and reloads **THE SYSTEM SHALL** have `data-theme` on `<html>` equal to the chosen theme at `DOMContentLoaded`.
-6. **WHEN** `pnpm test:e2e:full tests/e2e/app/shell.spec.ts` visits `/`, `/ajustes` and `/entrar` at 375 and 1440 px **THE SYSTEM SHALL** find no horizontal scroll and an axe-core scan with tags wcag2a, wcag2aa, wcag21aa and wcag22aa reporting 0 violations.
+5. **WHEN** `pnpm test:e2e:full tests/e2e/app/shell.spec.ts` visits `/`, `/ajustes` and `/entrar` at 375 and 1440 px **THE SYSTEM SHALL** find no horizontal scroll and an axe-core scan with tags wcag2a, wcag2aa, wcag21aa and wcag22aa reporting 0 violations, and after the signed-in user changes the theme in Ajustes and reloads **THE SYSTEM SHALL** have `data-theme` on `<html>` equal to the chosen theme at `DOMContentLoaded`.
+6. **WHEN** `pnpm test:e2e tests/e2e/ui/pwa.spec.ts` loads the production bundle served by `vite preview` on port 4173 **THE SYSTEM SHALL** resolve `navigator.serviceWorker.ready` and answer 200 to `fetch('/sw.js')`.
 
 **Verify** — cada comando, en orden, desde la raíz del proyecto. Cada uno termina en 0 cuando la tarea es correcta; que el último termine en 0 es lo que da la tarea por hecha.
 
@@ -511,6 +525,7 @@ pnpm test:emu
 pnpm build
 node scripts/check-pwa.mjs
 node scripts/smoke-server.mjs
+pnpm test:e2e tests/e2e/ui/pwa.spec.ts
 pnpm test:e2e:full tests/e2e/app/shell.spec.ts
 ```
 
@@ -548,6 +563,7 @@ Desde la raíz del proyecto. Ambos criterios los deciden estos comandos.
 - **Dos configs raíz de Biome**: el bundle está en `blueprints/<slug>/workspace/` y `biome.json` ya lo excluye (`!blueprints`); no copies la carpeta `blueprints/` a otro sitio dentro del árbol.
 - **El emulador de Firestore necesita Java 21+**; sin JDK `pnpm test:emu` falla antes de ejecutar nada. No lo sustituyas por mocks.
 - **`signInWithPopup` falla en PWA instalada de iOS** sin `authDomain` propio — es una puerta manual (§20.1), no la "arregles" en la build.
+- **Vite no lee `.env.example`**: el build de producción (y el bundle que sirve `vite preview` en los e2e `pwa.spec.ts` y `worklet.spec.ts`) toma los `VITE_*` de `.env`, que Bootstrap crea con `test -f .env || cp .env.example .env`. Si falta, `env.ts` aborta `main.tsx` antes de registrar el service worker.
 - **La cuenta de prueba solo existe contra el emulador** (`VITE_USE_EMULATORS === "true"`): no la dejes alcanzable en producción.
 
 ## Before moving on

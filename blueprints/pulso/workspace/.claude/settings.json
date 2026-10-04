@@ -57,7 +57,8 @@
       "Bash(tail:*)",
       "Bash(git rev-list:*)",
       "Bash(git grep:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(cp .env.example .env)"
     ],
     "deny": [
       "Read(./.env)",

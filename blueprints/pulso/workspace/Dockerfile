@@ -1,6 +1,5 @@
 # syntax=docker/dockerfile:1
-# Cloud Run image for @pulso/server. The tag below is derived from the pinned Node version;
-# VERIFICAR antes de construir que la etiqueta existe en Docker Hub (no se pudo comprobar offline).
+# Cloud Run image for @pulso/server. The tag below matches the pinned Node version (Docker Hub, 2026-10-04).
 FROM node:24.21.0-bookworm-slim AS build
 ENV PNPM_HOME=/pnpm
 ENV PATH=/pnpm:$PATH

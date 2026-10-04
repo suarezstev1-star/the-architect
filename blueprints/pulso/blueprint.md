@@ -3,7 +3,7 @@
 > Generado por The Architect el 2026-10-04
 > Forma: saas-webapp · `knowledge/shapes/saas-webapp.md`
 > Pista de ejecución: ts-node (con desviaciones declaradas en §2) · `knowledge/runtime-tracks/ts-node.md`
-> Modo de emisión: bundle (20 pasos → 3 épicas)
+> Modo de emisión: bundle (21 pasos → 3 épicas)
 > Versión del blueprint: 1
 > Versiones verificadas por última vez: 2026-10-04 — ver §11 para la procedencia de cada paquete
 
@@ -148,25 +148,25 @@ pulso/                                  # raíz del proyecto = donde se copia wo
   firestore.indexes.json                # compuesto sessions(profileId, startedAt desc) + exención de `contour`
   Dockerfile                            # imagen de Cloud Run del servidor
   CLAUDE.md  AGENTS.md  .claude/        # §19 (settings.json, skills/, rules/)
-  .github/workflows/ci.yml              # paso 20
+  .github/workflows/ci.yml              # paso 21
   blueprints/pulso/                     # ESTE bundle (blueprint.md, tasks.json, epics/, workspace/)
   scripts/
     make-icons.mjs                      # emitido: regenera los PNG de la PWA
     smoke-server.mjs                    # paso 1: arranca dist/index.js y comprueba /health
     check-no-hex.mjs                    # paso 2: ningún hex fuera de tokens.css
     check-pwa.mjs                       # paso 7: manifiesto + service worker
-  deploy/                               # pasos 19 y 20: scripts MANUALES, runbook, presupuesto de bundle
+  deploy/                               # pasos 20 y 21: scripts MANUALES, runbook, presupuesto de bundle
     deploy-server.sh  deploy-web.sh  storage-setup.sh  scheduler.sh  budget-alerts.sh
     storage-lifecycle.json  RUNBOOK.md  check-bundle-budget.mjs
   tests/
     e2e/global-setup.ts                 # emitido: genera el WAV del micrófono falso
-    e2e/ui/*.spec.ts                    # proyecto ui (pasos 2 y 8; worklet.spec.ts corre contra el bundle de producción)
-    e2e/app/*.spec.ts                   # proyecto app (pasos 6, 7, 10, 17, 18, 19)
-    repo/*.test.ts                      # comprobaciones de repositorio (pasos 3, 7, 20)
+    e2e/ui/*.spec.ts                    # proyecto ui (paso 2: layout; pasos 7 y 8: pwa.spec.ts y worklet.spec.ts, que corren contra el bundle de producción servido por vite preview en el puerto 4173)
+    e2e/app/*.spec.ts                   # proyecto app (pasos 6, 7, 10, 18, 19, 20)
+    repo/*.test.ts                      # comprobaciones de repositorio (pasos 3, 7, 21)
   packages/shared/                      # @pulso/shared — puro y determinista
     package.json  tsconfig.json  tsconfig.build.json
     src/index.ts                        # único punto de entrada público
-    src/health.ts  src/constants.ts  src/profiles.ts  src/wire.ts  src/report.ts
+    src/health.ts  src/constants.ts  src/profiles.ts  src/wire.ts  src/llm-schemas.ts
     src/schemas/                        # zod de cada colección + paths.ts (COLLECTION_NAMES)
     src/dsp/                            # resample, frames, synth, wav, yin, pitch
     src/monitor/                        # series, geometry, flatline
@@ -190,7 +190,7 @@ pulso/                                  # raíz del proyecto = donde se copia wo
     src/styles/tokens.css  app.css
     src/i18n/es.ts                      # ÚNICO archivo de cadenas visibles
     src/lib/  src/auth/  src/audio/  src/monitor/  src/meters/  src/components/  src/routes/
-    src/session/useRecordingSession.ts  # paso 17: grabar → sesión → métricas → finish → /sesiones/:id
+    src/session/useRecordingSession.ts  # paso 18: grabar → sesión → métricas → finish → /sesiones/:id
     tests/setup.ts
 ```
 
@@ -528,7 +528,7 @@ No hay script de siembra. En local, el usuario de prueba `e2e@pulso.test` (contr
 
 ### Contratos de dominio (packages/shared) — fórmulas y algoritmos
 
-Estas funciones son puras y están probadas en los pasos 8–18. Los valores son constantes con nombre.
+Estas funciones son puras y están probadas en los pasos 8–17. Los valores son constantes con nombre.
 
 | Contrato | Definición |
 |---|---|
@@ -659,7 +659,7 @@ Los contrastes son razones WCAG 2.x calculadas el 2026-10-04 con un script sobre
 
 ### Motion
 
-UI: `ease-out` (`cubic-bezier(0.22, 1, 0.36, 1)`), 150–250 ms; sin rebotes. La línea del monitor se dibuja a 60 fps interpolando entre datos de 10 Hz. El sello "ORATORIA PERFECTA ✓" hace **un único pulso de 400 ms**. Con `prefers-reduced-motion: reduce` se eliminan pulsos y transiciones decorativas (la línea del monitor sí se dibuja: es la función del producto). Nada parpadea más de 3 veces por segundo. Usar `emil-design-eng` en los pasos 10, 11 y 17.
+UI: `ease-out` (`cubic-bezier(0.22, 1, 0.36, 1)`), 150–250 ms; sin rebotes. La línea del monitor se dibuja a 60 fps interpolando entre datos de 10 Hz. El sello "ORATORIA PERFECTA ✓" hace **un único pulso de 400 ms**. Con `prefers-reduced-motion: reduce` se eliminan pulsos y transiciones decorativas (la línea del monitor sí se dibuja: es la función del producto). Nada parpadea más de 3 veces por segundo. Usar `emil-design-eng` en los pasos 10, 11 y 18.
 
 ### Component style
 
@@ -679,7 +679,7 @@ Instrumento de precisión, no tablero de juego: superficies oscuras casi negras 
 2. **Fallo de permitidos:** 403 `forbidden_email` → pantalla "Esta cuenta no está autorizada" con la opción de salir; no se crea ningún documento.
 3. **Sesión caducada:** el SDK renueva el ID token; si falla, `AuthProvider` pasa a anónimo y la guardia redirige a `/entrar?next=…`.
 4. **Salir:** `signOut` y limpieza de la caché de TanStack Query.
-5. **Exportar y borrar la cuenta:** ver Ajustes (paso 18). El borrado exige escribir `BORRAR`, usa un token no revocado y elimina también el usuario de Auth.
+5. **Exportar y borrar la cuenta:** ver Ajustes (paso 19). El borrado exige escribir `BORRAR`, usa un token no revocado y elimina también el usuario de Auth.
 6. **Cuenta de prueba:** solo con `VITE_USE_EMULATORS === "true"`, un botón "Entrar con cuenta de prueba" crea/inicia `e2e@pulso.test` contra el emulador de Auth. No es alcanzable en producción (la variable es falsa y el emulador no existe).
 
 ### Route protection
@@ -720,7 +720,7 @@ Esta sección es la razón de ser del blueprint: un constructor que sigue la sec
 
 ### The rules of a step
 
-1. **Un paso, una sentada.** Cada paso lleva Do, Done when, Verify y Checkpoint. Los `files` de `tasks.json` usan globs solo para directorios que el paso posee por completo o para ediciones de un directorio de `src/` (máximo 5 entradas por tarea y 6 criterios); el bloque Do de cada paso nombra cada archivo.
+1. **Un paso, una sentada.** Cada paso lleva Do, Done when, Verify y Checkpoint. Los `files` de `tasks.json` usan globs solo para directorios que el paso posee por completo o para ediciones de un directorio de `src/` (máximo 5 entradas por tarea y 6 criterios); el bloque Do de cada paso nombra cada archivo. **«Una sentada» se mide por la unidad de trabajo, no por el conteo de archivos**: un Do que posee un directorio completo (p. ej. `schemas/` en el paso 3 o `deploy/` en el paso 21) lista su contenido, y cuando un Do nombra más de unos 8 archivos lo justifica en una línea «Una sola sentada: …» (esquemas generados con un único patrón, módulos de arranque de pocas líneas, archivos de texto sin lógica). **`packages/shared/src/index.ts` es la entrada pública única del paquete:** todo paso que añade exportes lo edita («`index.ts` (editar) — reexporta …» en su Do), y todas las `deps.*` de `createApp` posteriores a `sha` son opcionales (el paso 4 fija la regla).
 2. **Checkpoint = bloque de shell**: `git add -A && git commit -m "step N: slug"` y luego `git tag step-NN-slug` (cero relleno al número de paso). Es el objetivo de reversión del paso siguiente (`git reset --hard step-NN-slug`).
 3. **Done when** son condiciones observables y decidibles por un script, en esta máquina, durante la build.
 4. **Verify es shell literal** y **cada línea termina en 0 cuando el paso es correcto**. Las comprobaciones cuyo éxito es un código distinto de cero están envueltas en una aserción del código esperado (`grep …; test $? -eq 1`).
@@ -735,7 +735,7 @@ Esta sección es la razón de ser del blueprint: un constructor que sigue la sec
 
 > **Un paso de §9 = una tarea de `tasks.json` = un bloque de tarea en un archivo de épica.**
 
-Hay **20 pasos**, por lo tanto 20 tareas y 20 bloques de tarea. Rango legal de épicas para 20 pasos: al menos `ceil(20 ÷ 9) = 3`, como máximo `floor(20 ÷ 5) = 4`. Se eligen **3 épicas** (cortes naturales por capa/superficie): `01-fundacion` (pasos 1–7, 7 tareas), `02-nucleo-de-voz` (pasos 8–12, 5 tareas) y `03-coaching-y-lanzamiento` (pasos 13–20, 8 tareas). Los pasos 3 a 7, 17 y 18, 19 y 20 son el resultado de partir pasos que, juntos, tocaban demasiados archivos para una sentada. Los slugs de épica coinciden con el campo `epic` de `tasks.json` y con los nombres de archivo de `epics/`.
+Hay **21 pasos**, por lo tanto 21 tareas y 21 bloques de tarea. Rango legal de épicas para 21 pasos: al menos `ceil(21 ÷ 9) = 3`, como máximo `floor(21 ÷ 5) = 4`. Se eligen **3 épicas** (cortes naturales por capa/superficie): `01-fundacion` (pasos 1–7, 7 tareas), `02-nucleo-de-voz` (pasos 8–12, 5 tareas) y `03-coaching-y-lanzamiento` (pasos 13–21, 9 tareas). Los pasos 3 a 7, 17 y 18, 19 a 21 son el resultado de partir pasos que, juntos, tocaban demasiados archivos para una sentada. Los slugs de épica coinciden con el campo `epic` de `tasks.json` y con los nombres de archivo de `epics/`.
 
 ### Step map
 
@@ -747,20 +747,21 @@ Hay **20 pasos**, por lo tanto 20 tareas y 20 bloques de tarea. Rango legal de �
 | 4 | Entorno validado, logger con request id y health profundo | 1 | `apps/server/src/*.ts`, `apps/server/tests/helpers/env.ts`, `apps/server/tests/emulator/health.test.ts` | `node scripts/smoke-server.mjs` |
 | 5 | Auth en el servidor: token, lista de permitidos y JIT | 3, 4 | `apps/server/src/auth/**`, `apps/server/src/routes/session.ts`, `apps/server/src/*.ts`, `apps/server/tests/**` | `node scripts/smoke-server.mjs` |
 | 6 | Auth en la web: Google, guardia de rutas y entorno | 5, 2 | `apps/web/src/**`, `tests/e2e/app/auth.spec.ts` | `pnpm test:e2e:full tests/e2e/app/auth.spec.ts` |
-| 7 | Shell autenticado, ajustes y PWA instalable | 2, 6 | `apps/web/src/**`, `apps/server/src/**`, `scripts/check-pwa.mjs`, `tests/repo/tokens-parity.test.ts`, `tests/e2e/app/shell.spec.ts` | `pnpm test:e2e:full tests/e2e/app/shell.spec.ts` |
+| 7 | Shell autenticado, ajustes y PWA instalable | 2, 6 | `apps/web/src/**`, `apps/server/src/routes/session.ts`, `scripts/check-pwa.mjs`, `tests/repo/tokens-parity.test.ts`, `tests/e2e/*/{shell,pwa}.spec.ts` | `pnpm test:e2e:full tests/e2e/app/shell.spec.ts` |
 | 8 | Captura de micrófono con AudioWorklet | 7 | `packages/shared/src/dsp/**`, `packages/shared/src/constants.ts`, `packages/shared/src/index.ts`, `apps/web/src/**`, `tests/e2e/ui/worklet.spec.ts` | `pnpm test:e2e tests/e2e/ui/worklet.spec.ts` |
 | 9 | Tono con YIN, mediana y semitonos | 8 | `packages/shared/src/dsp/yin.ts`, `packages/shared/src/dsp/pitch.ts`, `packages/shared/src/dsp/*.test.ts`, `packages/shared/src/index.ts` | `pnpm test:unit packages/shared` |
 | 10 | Monitor en vivo sobre canvas | 9, 7 | `packages/shared/src/monitor/**`, `apps/web/src/audio/**`, `apps/web/src/monitor/**`, `apps/web/src/routes/Monitor.tsx`, `tests/e2e/app/monitor.spec.ts` | `pnpm test:e2e:full tests/e2e/app/monitor.spec.ts` |
 | 11 | Línea fantasma y puntaje de seguimiento | 10 | `packages/shared/src/profiles.ts`, `packages/shared/src/ghost/**`, `packages/shared/src/index.ts`, `apps/web/src/monitor/**`, `apps/web/src/i18n/es.ts` | `pnpm build` |
 | 12 | Medidores: frecuencia, muletillas y ritmo local | 11 | `packages/shared/src/meters/**`, `packages/shared/src/index.ts`, `apps/web/src/meters/**`, `apps/web/src/routes/Monitor.tsx`, `apps/web/src/i18n/es.ts` | `pnpm build` |
 | 13 | Motores de coaching: vocabulario, reto, nivel y línea base | 12 | `packages/shared/src/coaching/**`, `packages/shared/src/index.ts` | `pnpm test:unit packages/shared` |
-| 14 | Pasarela WebSocket de audio y adaptador STT | 5, 8 | `packages/shared/src/wire.ts`, `apps/server/src/**`, `apps/server/tests/**`, `apps/web/src/audio/**` | `node scripts/smoke-server.mjs` |
-| 15 | Sesiones, dicción y retención de audio | 14, 12 | `packages/shared/src/coaching/diction.ts`, `packages/shared/src/schemas/session.ts`, `apps/server/src/**`, `apps/server/tests/**` | `node scripts/smoke-server.mjs` |
-| 16 | Pasarela Gemini, informe estructurado y evaluación | 15, 13 | `packages/shared/src/llm-schemas.ts`, `apps/server/src/**`, `apps/server/tests/**`, `apps/server/evals/**` | `grep -rl '@google/genai' apps/server/src | grep -qx 'apps/server/src/llm/gateway.ts'` |
-| 17 | Frase Perfecta, repertorio y mi mejor yo | 16, 12 | `packages/shared/src/coaching/**`, `apps/server/src/**`, `apps/server/tests/emulator/phrases.test.ts`, `apps/web/src/**`, `tests/e2e/app/perfect-phrase.spec.ts` | `pnpm test:e2e:full tests/e2e/app/perfect-phrase.spec.ts` |
-| 18 | Rutas y pantallas del coaching; exportar y borrar cuenta | 17 | `apps/server/src/routes/**`, `apps/server/src/app.ts`, `apps/server/tests/emulator/**`, `apps/web/src/**`, `tests/e2e/app/baseline.spec.ts` | `pnpm test:e2e:full tests/e2e/app/baseline.spec.ts` |
-| 19 | Límites de tasa, presupuesto de bundle y pasada a11y | 18 | `apps/server/src/rate-limit.ts`, `apps/server/src/app.ts`, `apps/server/src/rate-limit.test.ts`, `deploy/check-bundle-budget.mjs`, `tests/e2e/app/a11y.spec.ts` | `pnpm test:e2e:full tests/e2e/app/a11y.spec.ts` |
-| 20 | Scripts de entrega, runbook y CI | 19 | `deploy/*.sh`, `deploy/storage-lifecycle.json`, `deploy/RUNBOOK.md`, `.github/workflows/ci.yml`, `tests/repo/*.test.ts` | `pnpm test:e2e:full` |
+| 14 | Pasarela WebSocket de audio y adaptador STT | 5, 8 | `packages/shared/src/wire.ts`, `packages/shared/src/index.ts`, `apps/server/src/**`, `apps/server/tests/**`, `apps/web/src/audio/**` | `node scripts/smoke-server.mjs` |
+| 15 | Sesiones, dicción y retención de audio | 14, 12 | `packages/shared/src/coaching/diction.ts`, `packages/shared/src/schemas/session.ts`, `packages/shared/src/index.ts`, `apps/server/src/**`, `apps/server/tests/**` | `node scripts/smoke-server.mjs` |
+| 16 | Pasarela Gemini, informe estructurado y evaluación | 15, 13 | `packages/shared/src/llm-schemas.ts`, `packages/shared/src/index.ts`, `apps/server/src/**`, `apps/server/tests/**`, `apps/server/evals/**` | `grep -rl '@google/genai' apps/server/src | grep -qx 'apps/server/src/llm/gateway.ts'` |
+| 17 | Veredicto, repertorio de 10 frases y rutas de frases | 16, 12 | `packages/shared/src/coaching/verdict.ts`, `packages/shared/src/coaching/repertoire.ts`, `packages/shared/src/index.ts`, `apps/server/src/**`, `apps/server/tests/emulator/phrases.test.ts` | `node scripts/smoke-server.mjs` |
+| 18 | Frase Perfecta en pantalla y flujo de grabación | 17 | `apps/web/src/session/**`, `apps/web/src/routes/**`, `apps/web/src/components/Verdict.tsx`, `apps/web/src/meters/Meters.tsx`, `tests/e2e/app/perfect-phrase.spec.ts` | `pnpm test:e2e:full tests/e2e/app/perfect-phrase.spec.ts` |
+| 19 | Rutas y pantallas del coaching; exportar y borrar cuenta | 18 | `apps/server/src/routes/**`, `apps/server/src/app.ts`, `apps/server/tests/emulator/**`, `apps/web/src/**`, `tests/e2e/app/baseline.spec.ts` | `pnpm test:e2e:full tests/e2e/app/baseline.spec.ts` |
+| 20 | Límites de tasa, presupuesto de bundle y pasada a11y | 19 | `apps/server/src/rate-limit.ts`, `apps/server/src/app.ts`, `apps/server/src/rate-limit.test.ts`, `deploy/check-bundle-budget.mjs`, `tests/e2e/app/a11y.spec.ts` | `pnpm test:e2e:full tests/e2e/app/a11y.spec.ts` |
+| 21 | Scripts de entrega, runbook y CI | 20 | `deploy/*.sh`, `deploy/storage-lifecycle.json`, `deploy/RUNBOOK.md`, `.github/workflows/ci.yml`, `tests/repo/*.test.ts` | `pnpm test:e2e:full` |
 
 ---
 
@@ -785,6 +786,8 @@ Primero la verdad del paso: el árbol `workspace/` ya está copiado en la raíz 
 - `scripts/smoke-server.mjs` — script Node sin dependencias: lee `.env.example` (parser simple `CLAVE=valor`, ignora comentarios), elige un puerto libre abriendo y cerrando un `net.createServer().listen(0)`, lanza `node apps/server/dist/index.js` con ese entorno más `PORT=<libre>`, hace polling a `GET /health` hasta 15 s, valida `ok === true` y `typeof sha === "string"`, ejecuta `node --input-type=module -e "console.log(import.meta.resolve('@pulso/shared'))"` con `cwd = apps/server` y exige que la salida termine en `packages/shared/dist/index.js`, mata el proceso hijo (`SIGTERM`) y sale con 0; ante cualquier fallo imprime el motivo y sale con 1. Usa el entorno de `.env.example` completo para que los pasos 4 a 16 (que añaden variables obligatorias) no rompan esta puerta.
 
 Convención de imports (decidida una vez, ver §19.6): los especificadores relativos llevan la extensión `.ts` (`import { createApp } from "./app.ts"`); `@pulso/shared` se importa siempre desde el paquete, nunca por ruta relativa.
+
+**Una sola sentada:** es un único corte vertical mínimo (un esquema, una ruta, una página y un script de humo); ningún archivo supera unas pocas líneas y todos se verifican con el mismo `Verify`.
 
 **Done when**
 
@@ -853,6 +856,8 @@ Sistema visual "Monitor clínico / lujo sobrio". Antes de empezar, si la skill `
 - `scripts/check-no-hex.mjs` — recorre `apps/web/src/**` (`.ts`, `.tsx`, `.css`) excepto `styles/tokens.css` y `*.test.ts(x)`, más `apps/web/index.html`, y falla (exit 1) si encuentra `/#[0-9a-fA-F]{3,8}\b/`; imprime archivo:línea de cada hallazgo.
 - `tests/e2e/ui/layout.spec.ts` — para cada viewport `375x812` y `1440x900`, abre `/` y afirma `document.documentElement.scrollWidth === document.documentElement.clientWidth`.
 
+**Una sola sentada:** un archivo de tokens y su prueba de contraste, un script de cabecera y un shell vacío; no hay lógica de producto.
+
 **Done when**
 
 - [ ] **WHEN** `pnpm test:unit apps/web/src/styles/tokens.test.ts` runs **THE SYSTEM SHALL** parse `tokens.css` and assert, in the dark and in the light theme, that text, secondary text, ghost and alert each reach at least 4.5:1 against bg, surface and surface2, that signal reaches at least 4.5:1 against bg and surface and at least 3:1 against surface2 (light surface2 = 4.35, graphic use only), that strong border and focus each reach at least 3:1 against the same three, and that every ratio equals the measured value of the design table within 0.05.
@@ -898,6 +903,8 @@ Capa de datos con aislamiento por organización. Firestore con el SDK oficial, *
 - `tests/repo/firestore-indexes.test.ts` — lee `firestore.indexes.json` y afirma la exención de índice (`fieldOverrides` con `collectionGroup: "sessions"`, `fieldPath: "contour"`, `indexes: []`) y que el índice compuesto `profileId ASC + startedAt DESC` existe.
 - `packages/shared/src/schemas/schemas.test.ts` — para cada esquema, un ejemplo válido de §4 parsea y los casos inválidos fallan: `contour` con 3001 puntos, `plan: "pro"`, `role: "admin"`, `themePreference: "neon"`, `profileId: "otro"`.
 
+**Una sola sentada:** los esquemas del directorio `schemas/` siguen un único patrón (zod + tipo inferido) y las dos pruebas de emulador recorren `COLLECTION_NAMES`.
+
 **Done when**
 
 - [ ] **WHEN** `pnpm test:unit packages/shared/src/schemas/schemas.test.ts` runs **THE SYSTEM SHALL** parse a valid example of each schema of the data model and reject `contour` with 3001 points, `plan: 'pro'`, `role: 'admin'`, `themePreference: 'neon'` and an unknown `profileId`.
@@ -940,9 +947,11 @@ Entorno validado al arrancar, logger con id de petición y comprobación profund
 - `apps/server/src/load-dotenv.ts` — calcula `const envPath = new URL("../../../.env", import.meta.url)` (la raíz del repositorio, a la misma profundidad desde `src/` y desde `dist/`) y, si `existsSync(envPath)`, llama a `process.loadEnvFile(envPath)` (no sobrescribe variables ya presentes). Se importa como **primer** import (efecto lateral) en `index.ts` y en todo script/entrypoint (`scripts/*.ts`, `evals/run.ts`, `tests/e2e-server.ts`).
 - `apps/server/src/logger.ts` — pino en JSON con `redact` para `req.headers.authorization`, `token`, `idToken`; middleware Hono que genera `requestId` (`crypto.randomUUID()`), lo guarda en el contexto, lo devuelve en el header `x-request-id` y crea un logger hijo con `request_id`; registra una línea `request.completed` con `duration_ms` y `status`.
 - `apps/server/src/firebase.ts` — `getDb()` inicializa `firebase-admin` una sola vez con `projectId = GOOGLE_CLOUD_PROJECT` (sin credenciales en local: el emulador no las necesita). Es el **único** módulo que importa `firebase-admin/app`.
-- `apps/server/src/app.ts` y `apps/server/src/index.ts` (editar) — `index.ts` pasa a usar `loadEnv()` y el logger (si `loadEnv` lanza, imprime el mensaje y sale con código 1); `app.ts` monta el middleware del logger y añade `GET /health/deep`: lee un documento centinela (`db.collection('_health').doc('ping').get()`, no lo crea) y responde `{ ok: true, firestore: "up" }`; si lanza, responde 503 `{ ok: false, firestore: "down" }`. `createApp` recibe `db` por dependencia (`deps.db`, opcional: sin él, `/health/deep` responde 503, y las pruebas del paso 1 siguen pasando).
+- `apps/server/src/app.ts` y `apps/server/src/index.ts` (editar) — `index.ts` pasa a usar `loadEnv()` y el logger (si `loadEnv` lanza, imprime el mensaje y sale con código 1); `app.ts` monta el middleware del logger y añade `GET /health/deep`: lee un documento centinela (`db.collection('_health').doc('ping').get()`, no lo crea) y responde `{ ok: true, firestore: "up" }`; si lanza, responde 503 `{ ok: false, firestore: "down" }`. `createApp` recibe `db` por dependencia (`deps.db`). **Regla de dependencias:** todas las `deps.*` posteriores a `sha` (`db`, y más adelante `adminAuth`, `stt`, `oidcVerifier`, `llm`) son opcionales; la ruta que necesita una dependencia ausente responde 503 `upstream_unavailable` (aquí, `/health/deep` responde 503 sin `db`). El `app.test.ts` del paso 1 no cambia.
 - `apps/server/tests/helpers/env.ts` — `baseEnv(overrides?)`: parsea `.env.example` (solo las claves que no empiezan por `VITE_`) y devuelve un objeto con **todas** las claves del servidor como cadenas. Es la entrada válida de las pruebas de `loadEnv`; los pasos posteriores añaden claves a `.env.example` (ya están) y nunca editan las pruebas anteriores.
 - `apps/server/src/env.test.ts` — con `baseEnv()`: sin `GOOGLE_CLOUD_PROJECT` lanza nombrándola; con `baseEnv()` completo devuelve el objeto tipado con los valores por defecto. `logger.test.ts` captura la salida con un destino en memoria. `apps/server/tests/emulator/health.test.ts` prueba `/health/deep` contra el emulador y con un `db` simulado que lanza.
+
+**Una sola sentada:** cuatro módulos pequeños de arranque (entorno, carga de `.env`, logger, cliente de Firestore) más dos ediciones de una línea y tres archivos de prueba que cubren un comportamiento cada uno.
 
 **Done when**
 
@@ -985,10 +994,12 @@ Un solo proveedor de identidad: Firebase Auth con Google. El servidor verifica e
 - `apps/server/src/errors.ts` — clase `HttpError(status, code, message)` y manejador `app.onError` que responde SIEMPRE `{ error: { code, message, requestId } }`. Códigos: `unauthenticated` 401, `forbidden_email` 403, `not_found` 404, `validation_error` 422, `quota_exceeded` 429, `rate_limited` 429, `upstream_unavailable` 503, `internal` 500.
 - `apps/server/src/auth/verify.ts` — middleware `requireUser({ checkRevoked })`: exige `Authorization: Bearer <idToken>`, llama a `getAdminAuth().verifyIdToken(token, checkRevoked)`, exige `email` presente y `email_verified === true`, comprueba que el email (minúsculas) esté en `ALLOWED_EMAILS` (si no, `HttpError(403, "forbidden_email")` sin tocar Firestore) y deja `{ uid, email, name }` en el contexto. `POST /api/v1/session` usa `checkRevoked: true`; el resto, `false`. `getAdminAuth()` se añade a `firebase.ts`.
 - `apps/server/src/auth/provision.ts` — `provisionUser(db, user)`: transacción Firestore que, si `users/{uid}` no existe, crea `users/{uid}` (`personalOrgId`, `themePreference: "dark"`, `sttLocale: "es-US"`, `createdAt`), `orgs/{orgId}` (`orgId = crypto.randomUUID()`, `name` = "Mi espacio", `plan: "free"`, `ownerUid`, `createdAt`) y `orgs/{orgId}/members/{uid}` (`role: "owner"`), usando `createOrgStore` para las rutas de la organización; si ya existe, devuelve el `personalOrgId` sin escribir. Idempotente también con dos llamadas concurrentes (la lectura de `users/{uid}` ocurre dentro de la transacción).
-- `apps/server/src/routes/session.ts` y `apps/server/src/app.ts` (editar) — `POST /api/v1/session` (provisiona y devuelve `{ user, org }`) y `GET /api/v1/me` (404 si no existe el usuario). `app.ts` monta CORS (`hono/cors`) con `origin` ∈ `WEB_ORIGINS`, `allowHeaders: ["authorization","content-type"]`, y el manejador de errores; `createApp` recibe `deps.adminAuth`.
+- `apps/server/src/routes/session.ts` y `apps/server/src/app.ts` (editar) — `POST /api/v1/session` (provisiona y devuelve `{ user, org }`) y `GET /api/v1/me` (404 si no existe el usuario). `app.ts` monta CORS (`hono/cors`) con `origin` ∈ `WEB_ORIGINS`, `allowHeaders: ["authorization","content-type"]`, y el manejador de errores; `createApp` recibe `deps.adminAuth` (opcional como el resto de `deps.*` posteriores a `sha`; sin él, las rutas autenticadas responden 503 `upstream_unavailable`).
 - `apps/server/tests/helpers/emulator-auth.ts` — `createEmulatorUser(email)`: POST a `http://${FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake` con `{ email, password: "pulso-test-1234", returnSecureToken: true }`, marca el email como verificado con `accounts:update` (`emailVerified: true`) y devuelve `{ uid, idToken }`.
 - `apps/server/tests/emulator/auth.test.ts` — cubre las condiciones de aceptación contra el emulador de Auth y de Firestore; el criterio de `ALLOWED_EMAILS` vacío usa `baseEnv()` (paso 4).
 - `apps/server/tests/e2e-server.ts` — entrypoint **de prueba** (no es código de producto) que importa `../src/load-dotenv.ts` primero, construye las dependencias reales apuntando a los emuladores y arranca el servidor en `PORT`; los pasos 14 y 16 le inyectan los dobles de STT y de LLM. `pnpm --filter @pulso/server start:e2e` lo ejecuta (lo usa el e2e del paso 6).
+
+**Una sola sentada:** es una sola cadena de autenticación del servidor (verificar → permitir → aprovisionar) con su ayudante de pruebas y su entrypoint de prueba; la web no se toca.
 
 **Done when**
 
@@ -1031,9 +1042,9 @@ La web inicia sesión con Google, llama a `POST /api/v1/session` y protege las r
 - `apps/web/src/lib/env.ts` — zod sobre `import.meta.env`: `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID`, `VITE_USE_EMULATORS`, `VITE_API_URL`, `VITE_WS_URL` (las dos últimas pueden estar vacías); si falta una obligatoria, lanza nombrándola. `lib/env.test.ts` lo prueba con los valores del setup y con `vi.stubEnv` para la ausencia de `VITE_FIREBASE_PROJECT_ID`.
 - `apps/web/src/lib/firebase.ts` — `initializeApp`, `getAuth`, `connectAuthEmulator("http://127.0.0.1:9099", { disableWarnings: true })` si `VITE_USE_EMULATORS === "true"`, `getFirestore` + `connectFirestoreEmulator("127.0.0.1", 8080)`. `lib/api.ts` — `apiFetch(path, init)` añade el `Authorization: Bearer` del usuario actual y usa `VITE_API_URL` como base.
 - `apps/web/src/auth/AuthProvider.tsx` — estado `cargando | anonimo | autenticado`; tras iniciar sesión llama a `POST /api/v1/session` y guarda `{ user, org }`. `apps/web/src/auth/RequireAuth.tsx` — si anónimo: `<Navigate to={"/entrar?next=" + encodeURIComponent(location.pathname + location.search)} />`; mientras carga muestra `PageState` en `cargando`.
-- `apps/web/src/routes/Entrar.tsx` — botón "Entrar con Google": `signInWithPopup` en escritorio, `signInWithRedirect` + `getRedirectResult` cuando `navigator.standalone` o iOS; y, **solo** si `VITE_USE_EMULATORS === "true"`, un botón "Entrar con cuenta de prueba" que crea/entra con `e2e@pulso.test` / `pulso-test-1234` contra el emulador. Un 403 `forbidden_email` muestra "Esta cuenta no está autorizada" con la opción de salir.
+- `apps/web/src/routes/Entrar.tsx` — botón "Entrar con Google": `signInWithPopup` en escritorio, `signInWithRedirect` + `getRedirectResult` cuando `navigator.standalone` o iOS; y, **solo** dentro de la rama `VITE_USE_EMULATORS === "true"`, un botón "Entrar con cuenta de prueba" que crea o inicia sesión con `e2e@pulso.test` / `pulso-test-1234` (`createUserWithEmailAndPassword` / `signInWithEmailAndPassword`) contra el emulador y **a continuación** marca el correo como verificado (el emulador emite `email_verified: false` y `requireUser` exige `true`): `POST http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:update?key=fake` con `{ idToken, emailVerified: true }`, luego `getIdToken(true)` para refrescar el token y solo entonces `POST /api/v1/session`. Un 403 `forbidden_email` muestra "Esta cuenta no está autorizada" con la opción de salir.
 - `apps/web/src/router.tsx` — `createBrowserRouter`: `/entrar` pública; `/` y `/monitor` envueltas en `RequireAuth` con `AppShell`. Las cadenas nuevas van a `i18n/es.ts`.
-- `apps/web/src/auth/RequireAuth.test.tsx` — con `MemoryRouter`: anónimo en `/monitor` termina en `/entrar?next=%2Fmonitor`; autenticado renderiza el hijo. `routes/Entrar.test.tsx` — el botón de cuenta de prueba no existe cuando `VITE_USE_EMULATORS` es `"false"`.
+- `apps/web/src/auth/RequireAuth.test.tsx` — con `MemoryRouter`: anónimo en `/monitor` termina en `/entrar?next=%2Fmonitor`; autenticado renderiza el hijo. `routes/Entrar.test.tsx` — el botón de cuenta de prueba no existe cuando `VITE_USE_EMULATORS` es `"false"`, y con `"true"` verifica con `fetch` y Auth simulados el orden: inicio de sesión → `accounts:update` con `emailVerified: true` → `getIdToken(true)` → `POST /api/v1/session`.
 - `tests/e2e/app/auth.spec.ts` — abre `/monitor` anónimo, afirma la URL `/entrar?next=%2Fmonitor`, pulsa el botón de prueba y afirma volver a `/monitor`.
 
 **Done when**
@@ -1042,6 +1053,7 @@ La web inicia sesión con Google, llama a `POST /api/v1/session` y protege las r
 - [ ] **WHEN** `apps/web/src/lib/env.ts` is imported in a jsdom test **THE SYSTEM SHALL** parse the `VITE_*` defaults that `apps/web/tests/setup.ts` takes from `.env.example`, and **WHEN** `VITE_FIREBASE_PROJECT_ID` is absent **THE SYSTEM SHALL** throw an error naming it.
 - [ ] **WHEN** an anonymous user renders a route wrapped by `RequireAuth` at `/monitor` **THE SYSTEM SHALL** navigate to `/entrar?next=%2Fmonitor`, and **WHEN** the user is authenticated **THE SYSTEM SHALL** render the child.
 - [ ] **WHEN** `VITE_USE_EMULATORS` is `false` **THE SYSTEM SHALL** NOT render the button 'Entrar con cuenta de prueba' on `/entrar`.
+- [ ] **WHEN**, inside the `VITE_USE_EMULATORS === 'true'` branch only, the test sign-in has created or signed in `e2e@pulso.test` **THE SYSTEM SHALL** call `POST http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:update?key=fake` with `{ idToken, emailVerified: true }`, refresh the token with `getIdToken(true)` and only then call `POST /api/v1/session`, so that the `email_verified` check of the server passes (asserted in `Entrar.test.tsx` with simulated `fetch` and Auth, and by the e2e sign-in succeeding).
 
 **Verify**
 
@@ -1076,11 +1088,14 @@ Shell autenticado completo y PWA instalable. Aquí se fija el **manifiesto de ru
 - `apps/web/src/routes.ts` — manifiesto: array de `{ path, titleKey, auth: "publica" | "usuario", rendering: "cliente" }` para `/entrar`, `/`, `/monitor`, `/frase-perfecta`, `/sesiones/:id`, `/repertorio`, `/vocabulario`, `/baseline`, `/ajustes`. Todas son **cliente** (SPA tras login, sin SEO). `router.tsx` se construye A PARTIR de este manifiesto; un test recorre el manifiesto y afirma que cada ruta resuelve a un componente.
 - `apps/web/src/components/PageState.tsx` — `PageState` con las variantes `cargando` (esqueleto con las mismas dimensiones que el contenido real), `vacio` (mensaje + acción principal) y `error` (mensaje + reintentar + `requestId` si lo hay). Cada pantalla pendiente de pasos posteriores renderiza hoy `PageState variant="vacio"` con su `<h1>` (un único `h1` por ruta; `document.title` propio por ruta).
 - `apps/web/src/components/layout/AppShell.tsx` (editar) — navegación completa (Inicio, Monitor, Frase Perfecta, Repertorio, Vocabulario, Baseline, Ajustes) con `aria-current="page"`, objetivos táctiles ≥ 48 px en móvil, cabecera con el menú de la cuenta.
-- `apps/web/src/lib/theme.ts` — `applyTheme(pref)`: escribe `localStorage["pulso-theme"]` y `data-theme` en `<html>` (resolviendo `system` con `matchMedia`); `routes/Ajustes.tsx` — selector de tema (oscuro / claro / sistema), idioma STT (`es-US`, `es-MX`, `es-419`; guardado en `users.sttLocale`) y, por ahora, los botones "Exportar mis datos" y "Borrar mi cuenta" deshabilitados con texto explicativo (los activa el paso 18). Al cambiar se llama a `PATCH /api/v1/me`.
+- `apps/web/src/lib/theme.ts` — `applyTheme(pref)`: escribe `localStorage["pulso-theme"]` y `data-theme` en `<html>` (resolviendo `system` con `matchMedia`); `routes/Ajustes.tsx` — selector de tema (oscuro / claro / sistema), idioma STT (`es-US`, `es-MX`, `es-419`; guardado en `users.sttLocale`) y, por ahora, los botones "Exportar mis datos" y "Borrar mi cuenta" deshabilitados con texto explicativo (los activa el paso 19). Al cambiar se llama a `PATCH /api/v1/me`.
 - `apps/server/src/routes/session.ts` (editar) — `PATCH /api/v1/me` con `@hono/zod-validator`: cuerpo `{ themePreference?: "dark"|"light"|"system", sttLocale?: "es-US"|"es-MX"|"es-419" }`, al menos un campo; escribe en `users/{uid}`; valor inválido → 422 `validation_error` sin escribir.
 - PWA — `apps/web/src/pwa.ts` registra el service worker con `registerSW` de `virtual:pwa-register` (solo en producción); `vite-plugin-pwa` ya está configurado en `vite.config.ts` (emitido); para tipar `virtual:pwa-register` se crea `apps/web/src/vite-env.d.ts` con `/// <reference types="vite-plugin-pwa/client" />` (si el paquete expone ese módulo de tipos con otro nombre, léelo en `node_modules/vite-plugin-pwa/package.json`, campo `exports`). `scripts/check-pwa.mjs` lee `apps/web/dist/manifest.webmanifest` y `apps/web/dist/sw.js` y valida el contrato del criterio 1.
+- `tests/e2e/ui/pwa.spec.ts` — se ejecuta contra el **bundle de producción** que sirve `vite preview` en el puerto 4173 (`playwright.config.ts` ya añade ese `webServer` cuando existe `apps/web/dist`; el proyecto `ui` es el predeterminado). No importa código del producto: abre `http://127.0.0.1:4173/entrar`, espera `await navigator.serviceWorker.ready` y comprueba que `fetch('/sw.js')` responde 200. Necesita un `.env` (Bootstrap lo crea desde `.env.example`: el build de producción lee `VITE_*` de `.env`).
 - `tests/repo/tokens-parity.test.ts` — extrae `manifestColor` de `apps/web/vite.config.ts` y `--p-dark-bg` de `tokens.css` y exige igualdad (sin mayúsculas/minúsculas).
 - `tests/e2e/app/shell.spec.ts` — con el usuario de prueba: recorre `/`, `/ajustes` y `/entrar` (esta última sin sesión) a 375 y 1440 px sin scroll horizontal; ejecuta `AxeBuilder` con las etiquetas `wcag2a, wcag2aa, wcag21aa, wcag22aa` y exige `violations` vacío; cambia el tema en Ajustes, recarga y comprueba `data-theme` en `DOMContentLoaded`.
+
+**Una sola sentada:** reúne el manifiesto de rutas, un componente de estados, la pantalla de Ajustes y la PWA; las pantallas pendientes son marcadores con el mismo componente, y cada prueba cubre un contrato.
 
 **Done when**
 
@@ -1088,8 +1103,8 @@ Shell autenticado completo y PWA instalable. Aquí se fija el **manifiesto de ru
 - [ ] **WHEN** `pnpm test:unit tests/repo/tokens-parity.test.ts` runs **THE SYSTEM SHALL** assert that `theme_color` and `background_color` in `apps/web/vite.config.ts` equal the dark `--p-dark-bg` hex of `tokens.css`.
 - [ ] **WHEN** each route of `apps/web/src/routes.ts` renders in jsdom **THE SYSTEM SHALL** produce exactly one `h1`, a `main` landmark with id `contenido`, and a skip link as the first focusable element.
 - [ ] **WHEN** `PATCH /api/v1/me` receives `{ themePreference: 'light', sttLocale: 'es-MX' }` with a valid token **THE SYSTEM SHALL** persist both on `users/{uid}` and answer 200, and **WHEN** it receives `{ themePreference: 'neon' }` **THE SYSTEM SHALL** answer 422 with code `validation_error` and persist nothing.
-- [ ] **WHEN** the signed-in user changes the theme in Ajustes and reloads **THE SYSTEM SHALL** have `data-theme` on `<html>` equal to the chosen theme at `DOMContentLoaded`.
-- [ ] **WHEN** `pnpm test:e2e:full tests/e2e/app/shell.spec.ts` visits `/`, `/ajustes` and `/entrar` at 375 and 1440 px **THE SYSTEM SHALL** find no horizontal scroll and an axe-core scan with tags wcag2a, wcag2aa, wcag21aa and wcag22aa reporting 0 violations.
+- [ ] **WHEN** `pnpm test:e2e:full tests/e2e/app/shell.spec.ts` visits `/`, `/ajustes` and `/entrar` at 375 and 1440 px **THE SYSTEM SHALL** find no horizontal scroll and an axe-core scan with tags wcag2a, wcag2aa, wcag21aa and wcag22aa reporting 0 violations, and after the signed-in user changes the theme in Ajustes and reloads **THE SYSTEM SHALL** have `data-theme` on `<html>` equal to the chosen theme at `DOMContentLoaded`.
+- [ ] **WHEN** `pnpm test:e2e tests/e2e/ui/pwa.spec.ts` loads the production bundle served by `vite preview` on port 4173 **THE SYSTEM SHALL** resolve `navigator.serviceWorker.ready` and answer 200 to `fetch('/sw.js')`.
 
 **Verify**
 
@@ -1101,6 +1116,7 @@ pnpm test:emu
 pnpm build
 node scripts/check-pwa.mjs
 node scripts/smoke-server.mjs
+pnpm test:e2e tests/e2e/ui/pwa.spec.ts
 pnpm test:e2e:full tests/e2e/app/shell.spec.ts
 ```
 
@@ -1130,11 +1146,14 @@ Captura de micrófono con AudioWorklet. Decisión: **toda la lógica numérica v
 - `packages/shared/src/dsp/frames.ts` — `class FrameAssembler(inputRate)`: `push(block: Float32Array): Frame[]` donde `Frame = { pcm: Int16Array /* 1600 */, rms: number /* 0..1 sobre la señal float */ }`; remuestrea a 16 kHz, acumula y emite tramas de exactamente 1600 muestras sin pérdida ni duplicación entre bloques de tamaño arbitrario; convierte a Int16 con saturación (`round(clamp(x,-1,1)*32767)`).
 - `packages/shared/src/dsp/synth.ts` — generadores deterministas para pruebas: `sine(freq, seconds, rate, amp)`, `voice(f0, seconds, rate, { harmonics: 6 })` (armónicos con amplitud 1/h), `silence`, `whiteNoise(seconds, rate, amp, seed)` con PRNG sembrado (mulberry32), `concat(...)`.
 - `packages/shared/src/dsp/wav.ts` — `encodeWavPcm16(samples: Int16Array, sampleRate): Uint8Array` (cabecera RIFF/fmt/data canónica de 44 bytes, mono) y `decodeWavPcm16(bytes): { sampleRate, samples: Int16Array }` que lanza `WavError` si falta `RIFF`/`WAVE`, si no es PCM16 mono o si el `data` está truncado. (No se usa la librería `wavefile`: un codificador de 40 líneas evita una dependencia sin mantenimiento.)
+- `packages/shared/src/index.ts` (editar) — reexporta `constants`, `dsp/resample`, `dsp/frames`, `dsp/synth` y `dsp/wav`.
 - Pruebas junto a cada módulo (`resample.test.ts`, `frames.test.ts`, `wav.test.ts`).
 - `apps/web/src/audio/capture.worklet.ts` — registra el procesador `pulso-capture` (`registerProcessor`). No importa tipos DOM de worklet: accede a `AudioWorkletProcessor`, `registerProcessor` y `sampleRate` a través de `globalThis` con un tipo local mínimo (el `lib.dom` no los declara). Dentro: `new FrameAssembler(processorOptions.inputRate)`; en `process(inputs)` toma el canal 0 y por cada trama completa hace `port.postMessage({ pcm, rms }, [pcm.buffer])`. Se importa con `import workletUrl from "./capture.worklet.ts?worker&url"` (Vite compila el worklet como módulo aparte) **únicamente en `apps/web/src/audio/worklet-url.ts`** (`export { default as workletUrl }`): ese es el único módulo con el sufijo `?worker&url`, para que ninguna prueba de Vitest lo cargue (las pruebas que importan `useLiveMonitor` lo reemplazan con `vi.mock("../audio/worklet-url.ts")`).
 - `apps/web/src/audio/MicCapture.ts` — `class MicCapture` (recibe `workletUrl: string` por constructor; **no** importa `worklet-url.ts`) con `start(onFrame): Promise<void>` y `stop()`. `start`: `getUserMedia({ audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: false } })`; crea `new AudioContext()` (intenta `{ sampleRate: 16000 }` en un `try/catch` y **lee siempre `audioContext.sampleRate` real**), `audioWorklet.addModule(workletUrl)`, `new AudioWorkletNode(ctx, "pulso-capture", { processorOptions: { inputRate: ctx.sampleRate } })`, conecta la fuente al nodo (sin conectar a `destination`). `NotAllowedError` → `MicError("permission-denied")`; `NotFoundError` → `MicError("no-device")`; otro → `MicError("unknown")`. `stop()` detiene pistas, cierra el contexto. **No cambia de ruta ni de hash mientras captura** (bug WebKit 215884).
 - `apps/web/src/audio/mic-messages.ts` — mapea `MicError.reason` a la clave de `es.ts` (`mic.denied`, `mic.noDevice`, `mic.unknown`); `es.ts` recibe los textos (permiso denegado explica cómo reactivarlo en el navegador).
-- `tests/e2e/ui/worklet.spec.ts` — se ejecuta contra el **bundle de producción** que sirve `vite preview` (`playwright.config.ts` ya añade ese `webServer` en el puerto 4173 cuando existe `apps/web/dist`; el proyecto `ui` sigue siendo el predeterminado). No importa código del producto: con `node:fs` busca en `apps/web/dist/assets` el archivo `.js` que contiene `registerProcessor` y, en la página `http://127.0.0.1:4173/entrar`, ejecuta `const ctx = new AudioContext(); await ctx.audioWorklet.addModule('/assets/<archivo>'); new AudioWorkletNode(ctx, 'pulso-capture')`, que debe resolverse sin error. Un segundo caso del mismo archivo espera `await navigator.serviceWorker.ready` (el service worker de `pwa.ts` se registra en la build de producción) y comprueba que `fetch('/sw.js')` responde 200: así el bundle de producción se carga en un navegador real por alguna puerta.
+- `tests/e2e/ui/worklet.spec.ts` — se ejecuta contra el **bundle de producción** que sirve `vite preview` (`playwright.config.ts` ya añade ese `webServer` en el puerto 4173 cuando existe `apps/web/dist`; el proyecto `ui` sigue siendo el predeterminado). No importa código del producto: con `node:fs` busca en `apps/web/dist/assets` el archivo `.js` que contiene `registerProcessor` y, en la página `http://127.0.0.1:4173/entrar`, ejecuta `const ctx = new AudioContext(); await ctx.audioWorklet.addModule('/assets/<archivo>'); new AudioWorkletNode(ctx, 'pulso-capture')`, que debe resolverse sin error (el contrato del service worker lo ejerce `tests/e2e/ui/pwa.spec.ts`, paso 7).
+
+**Una sola sentada:** cuatro módulos de DSP puro con el mismo patrón de prueba (señal generada → resultado exacto) y dos cables finos de navegador; el worklet se ejerce con una única especificación.
 
 **Done when**
 
@@ -1143,7 +1162,7 @@ Captura de micrófono con AudioWorklet. Decisión: **toda la lógica numérica v
 - [ ] **WHEN** `encodeWavPcm16` output is passed to `decodeWavPcm16` **THE SYSTEM SHALL** return the same sample rate and identical samples, and **WHEN** the bytes lack a `RIFF` header or are truncated **THE SYSTEM SHALL** throw `WavError`.
 - [ ] **WHEN** `getUserMedia` rejects with `NotAllowedError` **THE SYSTEM SHALL** make `MicCapture.start()` reject with a `MicError` whose `reason` is `permission-denied`, mapped to the Spanish message key `mic.denied` of `es.ts`.
 - [ ] **WHEN** the `AudioContext` reports a `sampleRate` different from 16000 **THE SYSTEM SHALL** pass that real rate to the worklet as `processorOptions.inputRate` (asserted with a fake `AudioContext`).
-- [ ] **WHEN** `pnpm test:e2e tests/e2e/ui/worklet.spec.ts` runs against the production bundle served by `vite preview` **THE SYSTEM SHALL** load the built worklet file in a real `AudioContext` with `audioWorklet.addModule`, construct `new AudioWorkletNode(ctx, 'pulso-capture')` without error, and find the service worker registered (`navigator.serviceWorker.ready` resolves and `/sw.js` answers 200).
+- [ ] **WHEN** `pnpm test:e2e tests/e2e/ui/worklet.spec.ts` runs against the production bundle served by `vite preview` on port 4173 **THE SYSTEM SHALL** load the built worklet file in a real `AudioContext` with `audioWorklet.addModule` and construct `new AudioWorkletNode(ctx, 'pulso-capture')` without error.
 
 **Verify**
 
@@ -1179,7 +1198,7 @@ Detección de tono: YIN + mediana de 5 + corrección de octava + semitonos relat
 - `packages/shared/src/dsp/pitch.ts` — `hzToSemitones(hz, referenceHz) = 12 * log2(hz / referenceHz)`; `median(values)`; `class PitchTracker({ referenceHz?: number, silenceRms: 0.01 })` con `push({ pcm: Int16Array, rms }, tMs): PitchSample` donde `PitchSample = { tMs, hz: number | null, semitones: number | null, rms, voiced: boolean }`. Reglas: trama con `rms < silenceRms` → no sonora; si no, `yin` sobre `pcm/32768`; la salida es la **mediana de las últimas 5 estimaciones sonoras** (ventana deslizante que ignora las no sonoras); **corrección de octava**: si la estimación nueva está a 12 ± 1 semitonos de la mediana vigente (arriba o abajo), se pliega multiplicando o dividiendo por 2 antes de entrar en la ventana. La referencia: `referenceHz` si se pasó (viene de la ficha vocal); si no, se **fija** como la mediana de las primeras 20 estimaciones sonoras (2 s de voz) y se expone `tracker.referenceHz`; mientras no esté fijada, `semitones` se calcula contra la mediana provisional.
 - `packages/shared/src/dsp/yin.test.ts`, `pitch.test.ts` — usan `sine`, `voice`, `whiteNoise` de `synth.ts`: seno puro a 85/120/180/220/300/440 Hz (±10 cents, probabilidad ≥ 0.9), voz de 110 Hz con ruido a SNR 20 dB (±25 cents), silencio y ruido blanco (`freq: null`), secuencia con un salto de octava aislado (sin saltos > 2 semitonos en la salida), `hzToSemitones` en 0, +12 y −12.
 - `packages/shared/src/dsp/latency.test.ts` — procesa 600 tramas de voz sintética de 1600 muestras con `performance.now()` y afirma `p95 < 20 ms` por trama (presupuesto: 20 % del periodo de 100 ms). Si esta prueba falla en una máquina lenta, se optimiza `yin` (p. ej. limitar `tauMax`), nunca se sube el umbral.
-- `packages/shared/src/index.ts` (editar) — reexporta `constants`, `dsp/*`.
+- `packages/shared/src/index.ts` (editar) — reexporta `dsp/yin` y `dsp/pitch`.
 
 **Done when**
 
@@ -1226,6 +1245,7 @@ Monitor en vivo (canvas). Datos a 10 Hz (una muestra por trama de 100 ms), rende
 - `apps/web/src/monitor/useLiveMonitor.ts` crea `new MicCapture(workletUrl)` importando `workletUrl` de `../audio/worklet-url.ts`.
 - Pruebas: `series.test.ts`, `geometry.test.ts`, `flatline.test.ts` (shared); `apps/web/src/routes/Monitor.test.tsx` (jsdom, temporizadores falsos, con `vi.mock("../audio/worklet-url.ts", () => ({ workletUrl: "/worklet.js" }))`): el resumen no cambia más de una vez cada 2 s.
 - `tests/e2e/app/monitor.spec.ts` — proyecto `app` (Chromium con micrófono falso alimentado por `tests/e2e/.tmp/voice.wav`: 1 s silencio, 3 s a 130 Hz, 3 s a 260 Hz, 1 s silencio, en bucle). Inicia sesión con la cuenta de prueba, abre `/monitor`, pulsa Grabar, muestrea `freq-readout[data-hz]` y `monitor-canvas[data-last-semitones]` cada 100 ms durante 18 s (más de dos ciclos de 8 s) y, usando solo las muestras posteriores a los primeros 4 s (la referencia de semitonos ya está fijada), afirma: existen lecturas con `hz` dentro de 130 ± 8 % y de 260 ± 8 %; existe un par (i < j) con `hz[i]≈130`, `hz[j]≈260` y `semitones[j] − semitones[i] ≥ 9`; y el canvas contiene al menos un píxel del color `--signal` (lectura de `getImageData`).
+- `packages/shared/src/index.ts` (editar) — reexporta `monitor/series`, `monitor/geometry` y `monitor/flatline`.
 
 **Done when**
 
@@ -1278,6 +1298,7 @@ Línea fantasma: contorno ideal por perfil, determinista. Gemini (paso 16) solo 
 - `packages/shared/src/ghost/*.test.ts` — determinismo e igualdad profunda; duración; forma por perfil (redes: ≥ 60 % del máximo global dentro de los primeros 3 s y ≥ 1.5× los picos de eventos para el mismo texto; eventos: rango ≤ 0.5× el de redes; tarima: valor en el centro de cada pausa `larga` = `floorSt`); `heuristicMarks` con el texto "Pierde 3 millones por no cuidar a tu familia, actúa hoy." (marca `numero` en "3" y en "millones", `idea` en "hoy", pausa tras "familia"); `trackingScore` idéntico → 100, desplazado +6 st en un tramo de 4 s sobre 10 s → entre 50 y 70 con `firstDivergence.second` dentro de ± 0.5 s del inicio del tramo y `word` consistente con `wordTimes`; desplazado 300 ms → ≥ 95; desplazado 800 ms → estrictamente menor que el de 300 ms.
 - `apps/web/src/monitor/ghostDraw.ts` — `drawGhost(ctx, ghost, nowMs, startedAtMs, geometry, colors)`: `ctx.setLineDash([2, 6])` (punteado), `lineWidth = 2`, color `--ghost` leído de CSS, marcadores (círculo de 4 px) en cada marca de énfasis y la etiqueta de texto "FANTASMA" (en `es.ts`) junto a su extremo; la línea sólida del usuario sigue siendo ≈3 px y lleva "TÚ": la diferencia de trazo y las etiquetas son la señal para daltonismo (la luminosidad de ambos colores es casi igual). `ghostDraw.test.ts` usa un contexto 2D grabador (objeto con `setLineDash`, `beginPath`, `moveTo`, `lineTo`, `stroke`, `fillText`, `arc` como `vi.fn()`) y afirma que `setLineDash` recibe un patrón no vacío y que se dibuja el texto `FANTASMA`.
 - `apps/web/src/monitor/ProfileSelect.tsx` — selector de perfil (radio group nativo con `<fieldset><legend>`), perfil por defecto `redes`; `MonitorCanvas` recibe `ghost?: Ghost` y lo dibuja detrás de la línea del usuario.
+- `packages/shared/src/index.ts` (editar) — reexporta `profiles` y `ghost/*`.
 
 **Done when**
 
@@ -1324,6 +1345,7 @@ Medidores secundarios y cálculo local de ritmo y pausas (VAD por RMS en el nave
 - `apps/web/src/meters/Meters.tsx` — tres medidores bajo el monitor: **Frecuencia** (valor en Hz en `font-mono`, etiqueta de texto "Zona verde" / "Baja" / "Alta" además del color, barra con la zona verde marcada), **Muletillas** (contador total y top-3 con su conteo) y **Ritmo** (ppm y pausas, con la zona del perfil). El medidor de **Dicción** (0–100) se cablea en el paso 17 (la fórmula `dictionScore` nace en el paso 15 y el flujo de grabación de sesiones, que aporta la confianza de las transcripciones, en el paso 17); hoy muestra "—" con texto explicativo. Cada medidor tiene `role="group"` y un nombre accesible.
 - `apps/web/src/routes/Monitor.tsx` (editar) — integra los medidores usando `Vad`, `computeRhythm` y la zona verde de la ficha vocal si existe (en la semana de línea base se mide sin juzgar: la zona se muestra como "midiendo").
 - Pruebas: `vad.test.ts`, `rhythm.test.ts` (60 s sintéticos: 50 s de habla con 4 pausas de 2.5 s y 125 palabras → `ppm` 150 ± 0.5, `pauseCount` 4, `pauseRatio` 10/60 ± 0.01), `frequency.test.ts`, `fillers.test.ts` (tabla de ≥ 12 casos, incluidos los negativos), `Meters.test.tsx` (jsdom: la etiqueta de zona es texto).
+- `packages/shared/src/index.ts` (editar) — reexporta `meters/*`.
 
 **Done when**
 
@@ -1420,6 +1442,9 @@ Piezas:
 - `apps/server/tests/doubles/recorded-stt-adapter.ts` — doble **solo de pruebas**: lee un JSON de enunciados grabados y emite el enunciado `k` cuando se han escrito `threshold_k` bytes; cuenta los bytes recibidos y las llamadas a `open`. **Nunca se importa desde `src/`.** `tests/e2e-server.ts` lo inyecta.
 - `apps/server/tests/emulator/ws-gateway.test.ts` — arranca la app con `serve({ port: 0 })`, `injectWebSocket`, emuladores de Auth y Firestore y un cliente `ws`; cubre autenticación (sin token → 4401 a los 5 s con `authTimeoutMs` reducido a 200 ms en la prueba; token inválido → 4401; email fuera de la lista → 4403 y `open` no llamado), trama inválida → 4400, reenvío íntegro y en orden, tope de 270 s (envía 270 s de audio sin esperar → `limit` y cierre 1000), cuota → 4429 antes de abrir, registro de uso y `cost_usd = segundos/60 × STT_PRICE_USD_PER_MIN`.
 - `apps/web/src/audio/useAudioSocket.ts` — hook/clase: abre `VITE_WS_URL` (o `ws(s)://${location.host}/ws/audio` si vacío), envía `auth`, expone `estado: "conectando"|"listo"|"reconectando"|"fallo"|"cerrado"`, `enviar(pcm: Int16Array)` y `transcript`; si el socket cae mientras se graba reintenta con retroceso exponencial 500 ms, 1000 ms, 2000 ms (máx. 3 intentos) y pasa a `fallo`. Arranque en frío de Cloud Run: el estado `conectando` se muestra como "Conectando…". Prueba con temporizadores falsos y un `WebSocket` simulado.
+- `packages/shared/src/index.ts` (editar) — reexporta `wire`. Como el resto de `deps.*` posteriores a `sha`, `deps.stt` es opcional en `createApp` (sin él, `/ws/audio` cierra con 1011 y `{ type: "error", code: "upstream_unavailable" }`).
+
+**Una sola sentada:** el protocolo, el adaptador, la cuota y el cliente giran alrededor de un único contrato (`wire.ts` + `SttAdapter`); el doble de pruebas es un archivo.
 
 **Done when**
 
@@ -1470,6 +1495,9 @@ Sesiones, métricas y retención de audio. El audio temporal existe solo para el
 - `apps/server/src/env.ts` (editar) — añade `STORAGE_BUCKET`, `SWEEP_AUDIENCE`, `SCHEDULER_SA_EMAIL`, `FILLERS_FROM_AUDIO` (boolean, por defecto `true`), obligatorias desde el paso 15 salvo la bandera. `google-auth-library` (11.1.0) ya está en `apps/server/package.json` desde el Bootstrap: no hay nada que instalar aquí.
 - `apps/server/src/sessions/finalize.ts` y `apps/server/src/app.ts` (editar `app.ts` para montar las rutas de sesiones y `/internal`; `finalize.ts` es nuevo en este paso).
 - Pruebas: `dictionScore` (vector fijo: confianza 0.8, ppm 20 por encima del rango, pausas en rango → 64.0 exacto; límites 0 y 100), `sessions.test.ts` y `sweeper.test.ts` en `apps/server/tests/emulator/` (Storage emulator: se sube un objeto, `sweepAudio(now)` no lo borra, `sweepAudio(now + 25 h)` sí), aislamiento (`orgId` ajeno → 404 sin escrituras), tamaño de documento (3000 puntos < 1 MiB), WAV subido decodificable a las muestras enviadas.
+- `packages/shared/src/index.ts` (editar) — reexporta `coaching/diction`. `deps.oidcVerifier` es opcional como el resto de `deps.*` posteriores a `sha` (sin él, `/internal/sweep-audio` responde 401).
+
+**Una sola sentada:** una canalización (crear → cerrar → borrar audio → barrer) con un módulo por eslabón y pruebas contra emuladores.
 
 **Done when**
 
@@ -1519,6 +1547,9 @@ Pasarela de Gemini: **un único módulo importa el SDK** (`apps/server/src/llm/g
 - Carga del entorno: `pnpm eval` (`tsx --env-file=.env.example`) ya trae todas las variables; `pnpm eval:live` y `pnpm spike:stt` usan el `.env` real (los importa `load-dotenv.ts`). Evaluación — `apps/server/evals/golden.json`: **al menos 20 casos** repartidos en `ghostMarks` (8), `sessionReport` (8), `fillersFromAudio` (4) y 2 casos de respuesta malformada que debe repararse; cada caso tiene los campos `id`, `feature`, `input`, `recorded` (la respuesta cruda grabada) y `expect` (propiedades estructurales que debe cumplir la salida). `apps/server/evals/run.ts` — modo `recorded` (por defecto, sin red: reproduce las respuestas grabadas a través del mismo `generateStructured` con un `LlmTransport` de reproducción) o `--live` (usa el transporte real; solo manual, `pnpm eval:live`). Imprime tasa de aciertos, costo y latencia p95, y sale con código 1 si la tasa cae por debajo de `apps/server/evals/baseline.json` (un objeto con el campo `passRate`, calculado en la primera ejecución limpia y commiteado). Honestidad: el modo `recorded` prueba el pipeline (esquemas, reparación, límites), no la calidad del modelo; la calidad se mide con `pnpm eval:live` en la puerta manual.
 - Pruebas (`apps/server/tests/emulator/llm-gateway.test.ts` por escribir `llm_calls`; el resto unitarias en `apps/server/src/llm/*.test.ts`): reparación (malformado → válido = 2 llamadas; malformado dos veces = 2 llamadas y `LlmError`), 429 reintenta y 400 no, fila `llm_calls`, `ghost` con fallo del modelo → `source: "heuristic"`, informe guardado y audio borrado, `evals.test.ts` (la función de puntuación devuelve fallo si se corrompe una respuesta grabada).
 - **Puertas de grep del paso**: ningún ID de modelo en el código y un único importador del SDK (ver Verify).
+- `packages/shared/src/index.ts` (editar) — reexporta `llm-schemas`. `deps.llm` es opcional como el resto de `deps.*` posteriores a `sha` (sin él, `POST …/ghost` usa las marcas heurísticas y `finalizeSession` no genera informe).
+
+**Una sola sentada:** un único módulo de pasarela con tres funciones del mismo patrón (esquema → llamada → validación → registro) y un conjunto de evaluación; los prompts son archivos de texto.
 
 **Done when**
 
@@ -1554,31 +1585,29 @@ git ls-files --error-unmatch apps/server/evals/baseline.json   # expect: exit 0 
 
 ---
 
-#### Paso 17 — Frase Perfecta, repertorio y mi mejor yo
+#### Paso 17 — Veredicto, repertorio de 10 frases y rutas de frases
 
 **Tarea:** `E3-T5` · **Épica:** `03-coaching-y-lanzamiento`
 
 **Do**
 
-El usuario elige perfil y frase, la dice siguiendo el fantasma y recibe el veredicto exacto con el segundo y la palabra de la separación; el repertorio de 10 frases y el mejor intento quedan guardados.
+Existen el veredicto exacto de Frase Perfecta, el repertorio de 10 frases con su fantasma, las rutas de frases por organización y el guardado del mejor intento (mi mejor yo), todo en shared y servidor.
 
-Modo Frase Perfecta, repertorio de 10 frases y "mi mejor yo". El veredicto **"ORATORIA PERFECTA ✓"** solo existe si se cumplen las cuatro condiciones a la vez.
+Lado compartido y servidor del modo Frase Perfecta: veredicto exacto, repertorio de 10 frases, rutas de frases y "mi mejor yo". Sin pantallas: la interfaz y el flujo de grabación llegan en el paso 18. El veredicto **"ORATORIA PERFECTA ✓"** solo existe si se cumplen las cuatro condiciones a la vez.
 
 - `packages/shared/src/coaching/verdict.ts` — `evaluateVerdict({ trackingPct, diction, fillers, ppm, profileId, divergence }): { perfect: boolean; failedChecks: Array<"seguimiento"|"diccion"|"muletillas"|"ritmo">; divergence }` con `perfect` ⇔ `trackingPct ≥ 85 && diction ≥ 85 && fillers === 0 && ppm dentro del rango del perfil` (límites inclusivos: 85 exacto es perfecto, 84.99 no).
 - `packages/shared/src/coaching/repertoire.ts` — `REPERTOIRE_SEED`: **exactamente 10** frases de negocio en español neutro (cada una de 12 a 40 palabras, ids estables `frase-01`…`frase-10`, temas: ventas, seguros, propuesta de valor, cierre, objeciones, urgencia, legado/familia, confianza, llamada a la acción, presentación en evento). `normalizeContour(contour, targetLength)` re-muestrea en tiempo y deja el contorno en semitonos relativos; `ghostForPhrase(phrase, mode: "perfil" | "mi-mejor-yo")` devuelve el fantasma de plantilla y, en `mi-mejor-yo`, el `bestRunContour` guardado (si no existe, cae a la plantilla).
-- `apps/server/src/routes/phrases.ts` — bajo `/api/v1/orgs/:orgId/phrases`: `GET /` (si la organización no tiene frases, las siembra desde `REPERTOIRE_SEED` con marcas heurísticas y `seeded: true`), `POST /` (frase propia), `DELETE /:id`; en `finalizeSession`, si el veredicto de una sesión de modo `frase` es perfecto, guarda su contorno normalizado como `bestRunContour` de la frase.
-- `apps/web/src/routes/FrasePerfecta.tsx` — tres pasos con `<ol>` visible y foco gestionado: (1) elegir perfil y frase del repertorio (o escribir una; llama a `POST …/ghost` para las marcas), (2) decirla siguiendo el fantasma (monitor + fantasma + puntaje de seguimiento en vivo), (3) veredicto. `apps/web/src/routes/Repertorio.tsx` lista las 10 frases con una vista previa del fantasma. `apps/web/src/routes/Sesion.tsx` (reporte de sesión `/sesiones/:id`): métricas, `segundo N · palabra «X»` de la separación, corrección prioritaria, reemplazos de vocabulario y, si aplica, el sello. `apps/web/src/components/Verdict.tsx` muestra el sello **una sola vez**: texto exacto `ORATORIA PERFECTA ✓`, animación de 400 ms de un único pulso (`emil-design-eng` para la curva; desactivada con `prefers-reduced-motion`), y un `role="status"` con el mismo texto; si no es perfecto, lista cada condición fallida como texto.
-- `apps/web/src/session/useRecordingSession.ts` — **el flujo de grabación de sesiones, que ningún paso anterior construye**. `useRecordingSession({ profileId, mode, phraseId?, ghost? })` devuelve `{ estado, iniciar, detener, dictionLive }` y ejecuta, en este orden: (1) `POST /api/v1/orgs/:orgId/sessions` → `sessionId`; (2) abre `useAudioSocket` (paso 14) y envía como **primer mensaje** `auth` con `sessionId`; (3) reenvía cada trama de `MicCapture` como binario; (4) al detener envía `end` y espera `done` con los enunciados; (5) calcula las métricas del cliente con funciones puras de `@pulso/shared`: `computeRhythm` (VAD + palabras), `countFillers`, `trackingScore` (si hay fantasma), `computeGreenZone`/`classifyHz` para `greenZonePct`, `activeVocabPer100` y `detectComodin` (paso 13); (6) `POST …/sessions/:id/finish` con contorno, `referenceHz`, métricas, transcripción y enunciados; (7) navega a `/sesiones/:id`. Mientras graba, `dictionLive` = `dictionScore` (paso 15) calculado con la confianza media de los enunciados finales recibidos, el ppm y la razón de pausas actuales, y alimenta el medidor de **Dicción** de `Meters.tsx` (que hasta ahora mostraba "—"). `Monitor.tsx` ("Grabar") usa este mismo hook con `mode: "libre"` (la semana de línea base del paso 18 depende de ello) y `FrasePerfecta.tsx` con `mode: "frase"` o `"mi-mejor-yo"`. `useRecordingSession.test.ts` lo prueba con `MicCapture`, `WebSocket` y `apiFetch` simulados y verifica el orden de las llamadas.
-- Pruebas: `verdict.test.ts` (tabla: cada condición falla sola → no perfecto; límites 85 / 84.99; `fillers = 1` → no perfecto), `repertoire.test.ts` (10 frases, ids únicos, 12–40 palabras, `generateGhost` sin error para los 3 perfiles, `ghostForPhrase` con y sin mejor intento), `Verdict.test.tsx` (jsdom), `apps/server/tests/emulator/phrases.test.ts` (siembra idempotente, aislamiento por organización, `bestRunContour`), `tests/e2e/app/perfect-phrase.spec.ts` (con el STT grabado del servidor de pruebas y el micrófono falso: elegir "Tarima", cargar la frase 1, grabar 6 s, aterrizar en `/sesiones/:id` con veredicto **no** perfecto, segundo y palabra visibles; el documento existe vía `GET`).
+- `packages/shared/src/index.ts` (editar) — reexporta `coaching/verdict.ts` y `coaching/repertoire.ts`.
+- `apps/server/src/routes/phrases.ts` — bajo `/api/v1/orgs/:orgId/phrases`: `GET /` (si la organización no tiene frases, las siembra desde `REPERTOIRE_SEED` con marcas heurísticas y `seeded: true`; idempotente), `POST /` (frase propia), `DELETE /:id`, todas con el guardia de membresía (404 si la organización es ajena). `apps/server/src/app.ts` (editar) monta la ruta.
+- `apps/server/src/sessions/finalize.ts` (editar) — tras persistir, si el veredicto de una sesión de modo `frase` es perfecto, guarda su contorno normalizado (`normalizeContour`) como `bestRunContour` de la frase; si no es perfecto no toca la frase.
+- Pruebas: `verdict.test.ts` (tabla: cada condición falla sola → no perfecto; límites 85 / 84.99; `fillers = 1` → no perfecto; el resultado no perfecto conserva la `divergence`), `repertoire.test.ts` (10 frases, ids únicos, 12–40 palabras, `generateGhost` sin error para los 3 perfiles, `ghostForPhrase` con y sin mejor intento) y `apps/server/tests/emulator/phrases.test.ts` (siembra idempotente, alta y baja de frases propias, aislamiento por organización, `bestRunContour` guardado solo con veredicto perfecto).
 
 **Done when**
 
 - [ ] **WHEN** `evaluateVerdict` runs **THE SYSTEM SHALL** return `perfect: true` only when tracking is at least 85, diction is at least 85, fillers equal 0 and ppm is inside the profile range, treating 85 as perfect and 84.99 as not perfect, each failing condition alone SHALL give `perfect: false` with that condition in `failedChecks`, and a not-perfect result SHALL carry the `divergence` second and word computed by `trackingScore`.
 - [ ] **WHEN** `REPERTOIRE_SEED` is read **THE SYSTEM SHALL** contain exactly 10 phrases with unique ids, each of 12 to 40 words, and `generateGhost` SHALL produce a ghost for each of them in all three profiles without throwing.
-- [ ] **WHEN** a Frase Perfecta session reaches a perfect verdict **THE SYSTEM SHALL** store its time-normalized, semitone-relative contour as `bestRunContour` of the phrase and `ghostForPhrase(phrase, 'mi-mejor-yo')` SHALL return it, and **WHEN** no best run exists **THE SYSTEM SHALL** fall back to the profile template.
-- [ ] **WHEN** the `Verdict` component renders a perfect result **THE SYSTEM SHALL** show the text `ORATORIA PERFECTA ✓` exactly once with a `role="status"` announcement, and **WHEN** the result is not perfect **THE SYSTEM SHALL** list each failed check as text and `segundo N · palabra «X»` for the divergence.
-- [ ] **WHEN** `useRecordingSession` runs with a simulated `MicCapture`, `WebSocket` and `apiFetch` **THE SYSTEM SHALL**, in this order, call `POST …/sessions`, send `auth` with the returned `sessionId` as the first socket message, forward every frame as binary, send `end`, call `POST …/sessions/:id/finish` with the metrics computed by `computeRhythm`, `countFillers`, `trackingScore`, `activeVocabPer100` and `detectComodin`, and navigate to `/sesiones/:id`, and the Dicción meter SHALL show `dictionScore` computed from the utterance confidences instead of a dash.
-- [ ] **WHEN** `pnpm test:e2e:full tests/e2e/app/perfect-phrase.spec.ts` selects Tarima, loads phrase 1 and records the fake microphone for 6 s **THE SYSTEM SHALL** navigate to `/sesiones/:id` showing a not-perfect verdict with a divergence second and word, and the session document SHALL be readable through `GET /api/v1/orgs/:orgId/sessions/:id`.
+- [ ] **WHEN** a Frase Perfecta session reaches a perfect verdict **THE SYSTEM SHALL** store its time-normalized, semitone-relative contour as `bestRunContour` of the phrase and `ghostForPhrase(phrase, 'mi-mejor-yo')` SHALL return it, and **WHEN** the verdict is not perfect or no best run exists **THE SYSTEM SHALL** leave the phrase unchanged and fall back to the profile template.
+- [ ] **WHEN** `GET /api/v1/orgs/:orgId/phrases` runs for an org without phrases **THE SYSTEM SHALL** seed the 10 phrases of the repertoire and a second call SHALL leave exactly 10, `POST` and `DELETE` SHALL add and remove an own phrase, and **WHEN** the `orgId` belongs to another org **THE SYSTEM SHALL** answer 404 and write nothing.
 
 **Verify**
 
@@ -1587,6 +1616,47 @@ pnpm typecheck
 pnpm lint
 pnpm test:unit
 pnpm test:emu
+pnpm build
+node scripts/smoke-server.mjs
+```
+
+**Checkpoint**
+
+```bash
+git add -A && git commit -m "step 17: verdict-phrases"
+git tag step-17-verdict-phrases
+```
+
+---
+
+#### Paso 18 — Frase Perfecta en pantalla y flujo de grabación
+
+**Tarea:** `E3-T6` · **Épica:** `03-coaching-y-lanzamiento`
+
+**Do**
+
+El usuario elige perfil y frase, la dice siguiendo el fantasma y recibe el veredicto con el segundo y la palabra de la separación; el flujo de grabación de sesiones y el medidor de Dicción quedan cableados.
+
+Interfaz del modo Frase Perfecta y el flujo de grabación de sesiones, que ningún paso anterior construye. Usa los motores del paso 13, el WebSocket del paso 14, las sesiones del paso 15, el informe del paso 16 y el veredicto y repertorio del paso 17.
+
+- `apps/web/src/session/useRecordingSession.ts` — **el flujo de grabación de sesiones, que ningún paso anterior construye**. `useRecordingSession({ profileId, mode, phraseId?, ghost? })` devuelve `{ estado, iniciar, detener, dictionLive }` y ejecuta, en este orden: (1) `POST /api/v1/orgs/:orgId/sessions` → `sessionId`; (2) abre `useAudioSocket` (paso 14) y envía como **primer mensaje** `auth` con `sessionId`; (3) reenvía cada trama de `MicCapture` como binario; (4) al detener envía `end` y espera `done` con los enunciados; (5) calcula las métricas del cliente con funciones puras de `@pulso/shared`: `computeRhythm` (VAD + palabras), `countFillers`, `trackingScore` (si hay fantasma), `computeGreenZone`/`classifyHz` para `greenZonePct`, `activeVocabPer100` y `detectComodin` (paso 13); (6) `POST …/sessions/:id/finish` con contorno, `referenceHz`, métricas, transcripción y enunciados; (7) navega a `/sesiones/:id`. Mientras graba, `dictionLive` = `dictionScore` (paso 15) calculado con la confianza media de los enunciados finales recibidos, el ppm y la razón de pausas actuales, y alimenta el medidor de **Dicción** de `Meters.tsx` (que hasta ahora mostraba "—"). `Monitor.tsx` ("Grabar") usa este mismo hook con `mode: "libre"` (la semana de línea base del paso 19 depende de ello) y `FrasePerfecta.tsx` con `mode: "frase"` o `"mi-mejor-yo"`. `useRecordingSession.test.ts` lo prueba con `MicCapture`, `WebSocket` y `apiFetch` simulados y verifica el orden de las llamadas.
+- `apps/web/src/routes/FrasePerfecta.tsx` — tres pasos con `<ol>` visible y foco gestionado: (1) elegir perfil y frase del repertorio (o escribir una; llama a `POST …/ghost` para las marcas), (2) decirla siguiendo el fantasma (monitor + fantasma + puntaje de seguimiento en vivo), (3) veredicto.
+- `apps/web/src/components/Verdict.tsx` — el sello se muestra **una sola vez**: texto exacto `ORATORIA PERFECTA ✓`, animación de 400 ms de un único pulso (`emil-design-eng` para la curva; desactivada con `prefers-reduced-motion`) y un `role="status"` con el mismo texto; si no es perfecto, lista cada condición fallida como texto. `apps/web/src/routes/Sesion.tsx` (reporte `/sesiones/:id`) muestra métricas, `segundo N · palabra «X»` de la separación, corrección prioritaria, reemplazos de vocabulario y el sello. `apps/web/src/routes/Repertorio.tsx` lista las 10 frases con una vista previa del fantasma. Textos nuevos en `i18n/es.ts`.
+- Pruebas: `useRecordingSession.test.ts` (orden de las llamadas con dobles de `MicCapture`, `WebSocket` y `apiFetch`), `Verdict.test.tsx` y `FrasePerfecta.test.tsx` (jsdom: los tres pasos en un `<ol>`, foco gestionado) y `tests/e2e/app/perfect-phrase.spec.ts` (con el STT grabado del servidor de pruebas y el micrófono falso: elegir "Tarima", cargar la frase 1, grabar 6 s, aterrizar en `/sesiones/:id` con veredicto **no** perfecto, segundo y palabra visibles; el documento existe vía `GET`).
+
+**Done when**
+
+- [ ] **WHEN** the `Verdict` component renders a perfect result **THE SYSTEM SHALL** show the text `ORATORIA PERFECTA ✓` exactly once with a `role="status"` announcement, and **WHEN** the result is not perfect **THE SYSTEM SHALL** list each failed check as text and `segundo N · palabra «X»` for the divergence.
+- [ ] **WHEN** `useRecordingSession` runs with a simulated `MicCapture`, `WebSocket` and `apiFetch` **THE SYSTEM SHALL**, in this order, call `POST …/sessions`, send `auth` with the returned `sessionId` as the first socket message, forward every frame as binary, send `end`, call `POST …/sessions/:id/finish` with the metrics computed by `computeRhythm`, `countFillers`, `trackingScore`, `activeVocabPer100` and `detectComodin`, and navigate to `/sesiones/:id`, and the Dicción meter SHALL show `dictionScore` computed from the utterance confidences instead of a dash.
+- [ ] **WHEN** `FrasePerfecta` renders in jsdom **THE SYSTEM SHALL** show the three steps in an ordered list, move focus to the heading of the active step when it changes, and offer the 10 phrases of the repertoire in step 1.
+- [ ] **WHEN** `pnpm test:e2e:full tests/e2e/app/perfect-phrase.spec.ts` selects Tarima, loads phrase 1 and records the fake microphone for 6 s **THE SYSTEM SHALL** navigate to `/sesiones/:id` showing a not-perfect verdict with a divergence second and word, and the session document SHALL be readable through `GET /api/v1/orgs/:orgId/sessions/:id`.
+
+**Verify**
+
+```bash
+pnpm typecheck
+pnpm lint
+pnpm test:unit
 node scripts/check-no-hex.mjs
 pnpm build
 pnpm test:e2e:full tests/e2e/app/perfect-phrase.spec.ts
@@ -1595,21 +1665,21 @@ pnpm test:e2e:full tests/e2e/app/perfect-phrase.spec.ts
 **Checkpoint**
 
 ```bash
-git add -A && git commit -m "step 17: perfect-phrase"
-git tag step-17-perfect-phrase
+git add -A && git commit -m "step 18: perfect-phrase-ui"
+git tag step-18-perfect-phrase-ui
 ```
 
 ---
 
-#### Paso 18 — Rutas y pantallas del coaching; exportar y borrar cuenta
+#### Paso 19 — Rutas y pantallas del coaching; exportar y borrar cuenta
 
-**Tarea:** `E3-T6` · **Épica:** `03-coaching-y-lanzamiento`
+**Tarea:** `E3-T7` · **Épica:** `03-coaching-y-lanzamiento`
 
 **Do**
 
 El usuario ve su vocabulario, su reto semanal, su línea base y su nivel en pantalla, guarda su diccionario y su ficha vocal, y puede exportar o borrar todos sus datos.
 
-Rutas del servidor y pantallas de web del coaching: diccionario personal, reto semanal, línea base con ficha vocal, Inicio, y exportar/borrar la cuenta. Los motores puros ya existen (paso 13) y el flujo de grabación (paso 17); aquí solo se conectan.
+Rutas del servidor y pantallas de web del coaching: diccionario personal, reto semanal, línea base con ficha vocal, Inicio, y exportar/borrar la cuenta. Los motores puros ya existen (paso 13) y el flujo de grabación (paso 18); aquí solo se conectan.
 
 - `apps/server/src/routes/vocab.ts` — `GET/PUT /api/v1/orgs/:orgId/vocab` (diccionario personal) y `GET/PUT …/challenge` (reto semanal, clave `isoWeekKey(new Date())`).
 - `apps/server/src/routes/baseline.ts` — `PUT …/voice-sheet/:profileId` y `POST …/baseline/complete` (construye las fichas con `buildVoiceSheet`).
@@ -1640,15 +1710,15 @@ pnpm test:e2e:full tests/e2e/app/baseline.spec.ts
 **Checkpoint**
 
 ```bash
-git add -A && git commit -m "step 18: coaching-routes-web"
-git tag step-18-coaching-routes-web
+git add -A && git commit -m "step 19: coaching-routes-web"
+git tag step-19-coaching-routes-web
 ```
 
 ---
 
-#### Paso 19 — Límites de tasa, presupuesto de bundle y pasada a11y
+#### Paso 20 — Límites de tasa, presupuesto de bundle y pasada a11y
 
-**Tarea:** `E3-T7` · **Épica:** `03-coaching-y-lanzamiento`
+**Tarea:** `E3-T8` · **Épica:** `03-coaching-y-lanzamiento`
 
 **Do**
 
@@ -1682,16 +1752,16 @@ pnpm test:e2e:full tests/e2e/app/a11y.spec.ts
 **Checkpoint**
 
 ```bash
-git add -A && git commit -m "step 19: hardening-quality"
-git tag step-19-hardening-quality
+git add -A && git commit -m "step 20: hardening-quality"
+git tag step-20-hardening-quality
 git ls-files --error-unmatch deploy/check-bundle-budget.mjs   # expect: exit 0 — ya commiteado
 ```
 
 ---
 
-#### Paso 20 — Scripts de entrega, runbook y CI
+#### Paso 21 — Scripts de entrega, runbook y CI
 
-**Tarea:** `E3-T8` · **Épica:** `03-coaching-y-lanzamiento`
+**Tarea:** `E3-T9` · **Épica:** `03-coaching-y-lanzamiento`
 
 **Do**
 
@@ -1699,9 +1769,9 @@ Existen los scripts de despliegue y alertas validados localmente, el runbook, el
 
 Entrega: scripts de despliegue y alertas validados localmente, runbook, CI idéntico a la puerta final y las pruebas estáticas que fijan los valores compartidos. **El despliegue real, las alertas de presupuesto, el spike de STT, el iPhone y el lector de pantalla son puertas manuales con dueño** (§20.1), no pasos de la build. Todos los scripts usan `set -euo pipefail`, comprueban sus variables obligatorias y **ninguno se ejecuta en la build**.
 
-El directorio `deploy/` que posee este paso (seis archivos, además de `check-bundle-budget.mjs` del paso 19):
+El directorio `deploy/` que posee este paso (siete archivos: cinco `.sh`, `storage-lifecycle.json` y `RUNBOOK.md`; `check-bundle-budget.mjs` es del paso 20):
 - `deploy/deploy-server.sh` — `gcloud run deploy pulso-server --source . --region us-central1 --allow-unauthenticated --min-instances 0 --max-instances 3 --timeout 600 --set-env-vars …` (`--min-instances 1` queda documentado en comentarios como opción de pago contra el arranque en frío).
-- `deploy/deploy-web.sh` — `pnpm build && pnpm exec firebase deploy --only hosting,firestore:rules,firestore:indexes,storage`.
+- `deploy/deploy-web.sh` — exige que exista `.env.production.local` con los `VITE_*` reales (Vite lo prioriza sobre `.env`, que trae los valores del emulador; ambos están en `.gitignore`), y luego `pnpm build && pnpm exec firebase deploy --only hosting,firestore:rules,firestore:indexes,storage`.
 - `deploy/storage-setup.sh` — crea el bucket en `us-central1`, `gcloud storage buckets update gs://$BUCKET --soft-delete-duration=0` y aplica `deploy/storage-lifecycle.json`.
 - `deploy/scheduler.sh` — crea el job de Cloud Scheduler **llamado `pulso-sweep-audio`**, cada hora → `POST $SERVER_URL/internal/sweep-audio` con token OIDC de la cuenta de servicio.
 - `deploy/budget-alerts.sh` — `gcloud billing budgets create` con umbrales 0.5, 0.8 y 1.0.
@@ -1709,14 +1779,16 @@ El directorio `deploy/` que posee este paso (seis archivos, además de `check-bu
 - `deploy/RUNBOOK.md` — secciones `stt-cuota-agotada`, `error-rate-5xx` y `creditos-vencen`, cada una con al menos un bloque de comandos; el procedimiento "exportar mis datos y decidir migrar/mejorar antes del día 80"; y la lista de puertas manuales.
 
 Además:
-- `.github/workflows/ci.yml` — Node desde `.nvmrc`, pnpm 11.28.2 vía corepack, `pnpm install --frozen-lockfile`, instalación de Chromium y JDK 21, y las mismas órdenes de la puerta automática de §20.1 en el mismo orden (incluidos `pnpm eval` y ambos e2e).
+- `.github/workflows/ci.yml` — Node desde `.nvmrc`, pnpm 11.28.2 vía corepack, `pnpm install --frozen-lockfile`, instalación de Chromium (`pnpm exec playwright install --with-deps chromium`: el ejecutor de CI tiene `sudo` sin contraseña) y JDK 21, un paso `test -f .env || cp .env.example .env` **antes de `pnpm build`** (el build de producción lee los `VITE_*` de `.env`), y las mismas órdenes de la puerta automática de §20.1 en el mismo orden (incluidos `pnpm eval` y ambos e2e).
 - `tests/repo/deploy-config.test.ts` — ejecuta `bash -n` sobre cada `deploy/*.sh`; afirma el JSON del lifecycle, los umbrales 0.5/0.8/1.0, `--soft-delete-duration=0`, la región `us-central1`, que `deploy-server.sh` contiene `--max-instances 3`, `--min-instances 0` y `--timeout 600`, que `scheduler.sh` contiene `pulso-sweep-audio`, que el `CMD` del `Dockerfile` coincide con `main` y `scripts.start` de `apps/server/package.json` y que la etiqueta de Node del `Dockerfile` empieza por el mayor de `.nvmrc`.
-- `tests/repo/ci-parity.test.ts` — lee `blueprints/pulso/blueprint.md`, toma el PRIMER bloque ```bash bajo el encabezado `### 20.1`, elimina el comentario final desde ` #` en cada línea y descarta las líneas vacías, y exige que `.github/workflows/ci.yml` contenga cada comando, en el mismo orden, y que lea la versión de Node con `node-version-file: .nvmrc`. `tests/repo/runbook.test.ts` — exige las tres secciones del runbook, cada una con un bloque de comandos.
+- `tests/repo/ci-parity.test.ts` — lee `blueprints/pulso/blueprint.md`, toma el PRIMER bloque ```bash bajo el encabezado `### 20.1`, elimina el comentario final desde ` #` en cada línea y descarta las líneas vacías, y exige que `.github/workflows/ci.yml` contenga cada comando como subsecuencia ordenada (el CI puede tener pasos adicionales: instalar JDK y Chromium, crear `.env`) y que lea la versión de Node con `node-version-file: .nvmrc`. `tests/repo/runbook.test.ts` — exige las tres secciones del runbook, cada una con un bloque de comandos.
+
+**Una sola sentada:** son archivos de texto planos sin lógica (cinco scripts de shell cortos, un JSON, un runbook, un workflow) y tres pruebas estáticas de lectura de archivos.
 
 **Done when**
 
 - [ ] **WHEN** `pnpm test:unit tests/repo/deploy-config.test.ts` runs **THE SYSTEM SHALL** assert that `bash -n` exits 0 for every `deploy/*.sh`, that `deploy/storage-lifecycle.json` has a Delete rule with age 1 and prefix `tmp/`, that `deploy/budget-alerts.sh` sets thresholds 0.5, 0.8 and 1.0, that `deploy/storage-setup.sh` contains `--soft-delete-duration=0`, that the deploy scripts use region `us-central1`, that `deploy/deploy-server.sh` contains `--max-instances 3`, `--min-instances 0` and `--timeout 600`, that `deploy/scheduler.sh` names the job `pulso-sweep-audio`, and that the `CMD` of the `Dockerfile` equals `main` and `scripts.start` of `apps/server/package.json` (`dist/index.js`).
-- [ ] **WHEN** `pnpm test:unit tests/repo/ci-parity.test.ts` runs **THE SYSTEM SHALL** assert that `.github/workflows/ci.yml` runs every command of the automated global gate in the same order, reads the Node version from `.nvmrc` and runs `pnpm eval`.
+- [ ] **WHEN** `pnpm test:unit tests/repo/ci-parity.test.ts` runs **THE SYSTEM SHALL** assert that `.github/workflows/ci.yml` runs every command of the automated global gate as an ordered subsequence (extra setup steps are allowed, among them the installation of JDK and Chromium and `test -f .env || cp .env.example .env` before `pnpm build`, which it SHALL contain), reads the Node version from `.nvmrc` and runs `pnpm eval`.
 - [ ] **WHEN** `pnpm test:unit tests/repo/runbook.test.ts` runs **THE SYSTEM SHALL** find in `deploy/RUNBOOK.md` the sections `stt-cuota-agotada`, `error-rate-5xx` and `creditos-vencen`, each with at least one fenced command block.
 - [ ] **WHEN** the automated global gate runs in the order of the blueprint **THE SYSTEM SHALL** exit 0 on every command, from `pnpm install --frozen-lockfile` to `pnpm test:e2e:full`.
 
@@ -1740,8 +1812,8 @@ pnpm test:e2e:full
 **Checkpoint**
 
 ```bash
-git add -A && git commit -m "step 20: delivery-ci"
-git tag step-20-delivery-ci
+git add -A && git commit -m "step 21: delivery-ci"
+git tag step-21-delivery-ci
 git ls-files --error-unmatch .github/workflows/ci.yml   # expect: exit 0 — ya commiteado
 git ls-files --error-unmatch deploy/storage-lifecycle.json   # expect: exit 0 — ya commiteado
 ```
@@ -1769,7 +1841,7 @@ NOT APPLICABLE — greenfield build, no system is being replaced.
 | git | cualquiera reciente | `git --version` |
 | jq | 1.6 o posterior (lo usan las puertas de §20.1 y las manuales) | `jq --version` (instalación: `apt-get install jq`, `brew install jq`) |
 | rsync | cualquiera | `rsync --version` |
-| Chromium de Playwright | lo instala Bootstrap | `pnpm exec playwright --version` |
+| Chromium de Playwright | lo instala Bootstrap (`pnpm exec playwright install chromium`, sin `--with-deps`: no pide `sudo`). En Linux hacen falta las librerías del sistema: el dueño ejecuta **una sola vez** `sudo pnpm exec playwright install-deps chromium` (o el equivalente de su distribución); en CI se usa `--with-deps` (el ejecutor tiene `sudo` sin contraseña) | `pnpm exec playwright --version` |
 | gcloud CLI (solo puertas manuales) | actual | `gcloud --version` — no se usa en la build |
 | Docker (opcional, puerta manual M13) | actual | `docker --version` |
 
@@ -1786,10 +1858,10 @@ El sandbox o la máquina con Node < 24 (p. ej. 22.22.0) **no sirve**: `jsdom` 30
 
 | Variable | Purpose | Where to get it | Required by step | Secret? |
 |---|---|---|---|---|
-| `NODE_ENV` | `development` \| `test` \| `production` | `.env.example` | 4 | no |
-| `PORT` | Puerto del servidor (local `8787`; Cloud Run inyecta `8080`) | `.env.example` | 4 | no |
-| `GIT_SHA` | SHA que devuelve `/health` | `git rev-parse --short HEAD` en el despliegue | 4 | no |
-| `LOG_LEVEL` | Nivel de pino | `.env.example` | 4 | no |
+| `NODE_ENV` | `development` \| `test` \| `production` | `.env.example` | 4 (antes: lectura directa con valor por defecto) | no |
+| `PORT` | Puerto del servidor (local `8787`; Cloud Run inyecta `8080`) | `.env.example` | 4 (antes: lectura directa con valor por defecto) | no |
+| `GIT_SHA` | SHA que devuelve `/health` | `git rev-parse --short HEAD` en el despliegue | 4 (antes: lectura directa con valor por defecto) | no |
+| `LOG_LEVEL` | Nivel de pino | `.env.example` | 4 (antes: lectura directa con valor por defecto) | no |
 | `GOOGLE_CLOUD_PROJECT` | Proyecto de Firestore/Auth (`demo-pulso` en local) | `.env.example`; en producción, la consola de Google Cloud | 4 | no |
 | `FIRESTORE_EMULATOR_HOST` | Apunta el SDK al emulador de Firestore (`127.0.0.1:8080`) | `.env.example`; lo exporta `firebase emulators:exec` | 3 (solo local) | no |
 | `FIREBASE_AUTH_EMULATOR_HOST` | Emulador de Auth (`127.0.0.1:9099`) | `.env.example` | 5 (solo local) | no |
@@ -1813,7 +1885,7 @@ El sandbox o la máquina con Node < 24 (p. ej. 22.22.0) **no sirve**: `jsdom` 30
 | `VITE_USE_EMULATORS` | `true` conecta Auth/Firestore a los emuladores y habilita el botón de cuenta de prueba | `.env.example` / `.env.e2e` | 6 | no |
 | `VITE_API_URL`, `VITE_WS_URL` | Base de la API y URL del WebSocket (vacío en local: proxy de Vite) | `.env.example`; en producción, la URL de Cloud Run | 6 | no |
 | `E2E_FULL` | `1` habilita el proyecto Playwright `app` | `pnpm test:e2e:full` lo exporta | 6 | no |
-| `CI` | Lo fijan GitHub Actions y la mayoría de CI; endurece Playwright (`forbidOnly`, reintentos) y desactiva la reutilización de servidores | El entorno de CI | 20 | no |
+| `CI` | Lo fijan GitHub Actions y la mayoría de CI; endurece Playwright (`forbidOnly`, reintentos) y desactiva la reutilización de servidores | El entorno de CI | 21 | no |
 | `GCLOUD_PROJECT` | Solo `apps/server/tests/setup.ts` (`demo-pulso`) para los SDK en pruebas | Pruebas | 3 | no |
 | `PROJECT`, `BILLING_ACCOUNT`, `BUCKET`, `SERVER_URL` | Parámetros de los scripts `deploy/*.sh` (puertas manuales M3–M7; cada script los exige y falla si faltan) | Consola de Google Cloud | — (solo manual) | no |
 
@@ -1825,14 +1897,14 @@ El sandbox o la máquina con Node < 24 (p. ej. 22.22.0) **no sirve**: `jsdom` 30
 
 | Herramienta | Mecanismo |
 |---|---|
-| Servidor (`pnpm dev`, `node dist/index.js`) | `import "./load-dotenv.ts"` como primer import de `src/index.ts`: `process.loadEnvFile()` sobre `<raíz>/.env` si existe (no sobrescribe lo ya exportado) |
+| Servidor (`pnpm dev`, `node dist/index.js`) | `import "./load-dotenv.ts"` como primer import de `src/index.ts`: `process.loadEnvFile()` sobre `<raíz>/.env` si existe (no sobrescribe lo ya exportado); Bootstrap crea ese `.env` desde `.env.example` |
 | `pnpm eval` (modo grabado) | `tsx --env-file=.env.example` en el propio script de `package.json`: trae todas las variables sin depender de un `.env`, y no necesita Firestore (registrador en memoria) |
 | `pnpm spike:stt` y `pnpm eval:live` (manuales) | El `.env` real vía `load-dotenv.ts` (primer import de cada entrypoint) con `GOOGLE_CLOUD_PROJECT=<PROYECTO>` exportado: nunca heredan los hosts de emuladores |
 | `tests/e2e-server.ts` (`start:e2e`) | `load-dotenv.ts` primero más el bloque `env` de `playwright.config.ts` |
 | Vitest (servidor) | `apps/server/tests/setup.ts` fija valores por defecto con `??=` (respeta lo que exporte `firebase emulators:exec`); las pruebas de `loadEnv` parten de `baseEnv()` (`apps/server/tests/helpers/env.ts`, paso 4: todas las claves de `.env.example`) |
 | Vitest (web) | `apps/web/tests/setup.ts` fija con `??=` todas las `VITE_*` con los valores de `.env.example` (`process.env` e `import.meta.env`) para que `src/lib/env.ts` (paso 6) no lance en jsdom |
 | Playwright | El bloque `env` de cada `webServer` en `playwright.config.ts` |
-| Vite (web) | `envDir` = raíz del repositorio (lee `.env`, y `.env.e2e` con `--mode e2e`) |
+| Vite (web) | `envDir` = raíz del repositorio: lee `.env` (que Bootstrap y el CI crean con `test -f .env || cp .env.example .env`, porque Vite **no** lee `.env.example`; sin `.env` el build de producción no trae `VITE_*` y `env.ts` aborta `main.tsx`), y `.env.e2e` con `--mode e2e`. Para un despliegue real, `.env.production.local` (gitignored) pisa a `.env` |
 | Firebase CLI | `--project demo-pulso` explícito en cada script (`emulators`, `test:emu`) y `.firebaserc` |
 | `scripts/smoke-server.mjs` | Lee `.env.example` y lo pasa al proceso hijo |
 
@@ -1846,18 +1918,18 @@ El sandbox o la máquina con Node < 24 (p. ej. 22.22.0) **no sirve**: `jsdom` 30
 | `package.json`, `pnpm-workspace.yaml`, `biome.json`, `tsconfig*.json`, `vitest.config.ts`, `playwright.config.ts`, `firebase.json`, `.firebaserc`, `firestore.rules`, `firestore.indexes.json`, `storage.rules`, `Dockerfile` | Configuración que las puertas ejecutan | — no coinciden con ningún patrón |
 | `apps/web/public/icons/*.png`, `apps/web/public/theme-init.js` | Activos de la PWA | — no coinciden con ningún patrón |
 | `.claude/settings.json`, `.claude/skills/**`, `.claude/rules/**`, `CLAUDE.md`, `AGENTS.md` | Configuración del agente | — no coinciden (`.claude/settings.local.json` es personal y no se lista) |
-| `.github/workflows/ci.yml` | CI idéntico a la puerta final (paso 20) | — no coincide con ningún patrón |
+| `.github/workflows/ci.yml` | CI idéntico a la puerta final (paso 21) | — no coincide con ningún patrón |
 | `blueprints/pulso/**` | El bundle debe poder commitearse | — `blueprints/` no está en `.gitignore` |
 | `tests/e2e/.tmp/voice.wav` | **Se ignora a propósito** (lo genera `global-setup.ts`) | `tests/e2e/.tmp/` está en `.gitignore` |
 
-El `.gitignore` y sus excepciones **llegan desde `workspace/` y se copian antes del primer commit** (Bootstrap); ningún paso de §9 lo crea (el paso 20 no lo toca).
+El `.gitignore` y sus excepciones **llegan desde `workspace/` y se copian antes del primer commit** (Bootstrap); ningún paso de §9 lo crea (el paso 21 no lo toca).
 
 ### Bootstrap
 
 ```bash
 # Ejecutar desde la raíz del proyecto, que ya contiene blueprints/pulso/ (el bundle).
 # Seguro de ejecutar dos veces. Debe correr con `set -e`.
-# order matters: ignore file + exceptions (rsync) → repo init → install → browsers → format reconcile → first commit → services
+# order matters: ignore file + exceptions (rsync) → .env → repo init → install → browsers → format reconcile → first commit → services
 
 BUNDLE=blueprints/pulso
 
@@ -1872,6 +1944,9 @@ rsync -a --ignore-existing "$BUNDLE/workspace/" ./   # --ignore-existing: no rev
 # Nunca se sobrescriben una vez presentes: los 4 package.json, pnpm-workspace.yaml, biome.json, tsconfig*.json,
 # vitest.config.ts, playwright.config.ts, vite.config.ts, .gitignore, CLAUDE.md. (pnpm-lock.yaml no viene en workspace/.)
 
+# 1b. .env local: Vite lee `.env` (NO `.env.example`) y el build de producción lee los VITE_* de ahí; .env está en .gitignore
+test -f .env || cp .env.example .env   # idempotente: sale 0 con o sin .env; no pisa un .env que el dueño ya editó
+
 # 2. Repositorio y primer commit (el .gitignore ya está en el árbol)
 git rev-parse --git-dir >/dev/null 2>&1 || git init -b main   # idempotente: no hace nada si ya existe
 git config user.name >/dev/null 2>&1 || git config user.name "PULSO builder"
@@ -1882,8 +1957,8 @@ pnpm install --no-frozen-lockfile || true   # crea pnpm-lock.yaml la primera vez
 pnpm approve-builds --all || true   # clave de pnpm 11 = allowBuilds (NO onlyBuiltDependencies); no interactivo. `|| true`: en una re-ejecución no hay nada pendiente; la línea siguiente es la puerta real
 pnpm install --frozen-lockfile       # la puerta real: sale 0 solo tras la línea anterior
 
-# 4. Navegador para Playwright (las pruebas e2e fallan sin binarios)
-pnpm exec playwright install --with-deps chromium
+# 4. Navegador para Playwright (las pruebas e2e fallan sin binarios). Sin --with-deps: no usa apt/sudo (ver Prerequisites para las librerías del sistema)
+pnpm exec playwright install chromium   # idempotente: sale 0 si el binario ya está
 
 # 5. Reconciliar el formato de los archivos emitidos con biome.json, una vez
 pnpm exec biome check --write .
@@ -1970,7 +2045,7 @@ git add -A && git commit -m "chore: scaffold" --allow-empty   # un tag necesita 
 | vitest | 5.0.3 | https://registry.npmjs.org/-/package/vitest/dist-tags | 2026-10-04 | §10 Bootstrap — `pnpm install` lee `package.json` (raíz) | Pruebas unitarias e integración (5.x; Node ^22.12 || ^24) |
 | Node.js | 24.21.0 (`.nvmrc`: `24`) | https://nodejs.org/dist/index.json | 2026-10-04 | Prerrequisito de §10 (lo instala el desarrollador; CI usa `.nvmrc`) | Runtime LTS "Krypton"; el sandbox con Node 22.22.0 queda por debajo del piso de jsdom |
 | pnpm | 11.28.2 | https://registry.npmjs.org/-/package/pnpm/dist-tags (etiqueta `latest-11`) | 2026-10-04 | Prerrequisito de §10 (`corepack prepare pnpm@11.28.2 --activate`); `packageManager` en `package.json` | Gestor de paquetes |
-| node (imagen Docker) | `node:24.21.0-bookworm-slim` | derivada de la versión de Node; VERIFICAR antes de construir que la etiqueta existe (no se pudo comprobar sin red) | 2026-10-04 | `Dockerfile` (emitido en `workspace/`; lo instala `docker build`, puerta manual M13) | Imagen de Cloud Run |
+| node (imagen Docker) | `node:24.21.0-bookworm-slim` | etiqueta de Docker Hub que coincide con la versión de Node (existe: HTTP 200 el 2026-10-04) | 2026-10-04 | `Dockerfile` (emitido en `workspace/`; lo instala `docker build`, puerta manual M13) | Imagen de Cloud Run |
 
 ### Deliberately not used
 
@@ -1991,7 +2066,7 @@ git add -A && git commit -m "chore: scaffold" --allow-empty   # un tag necesita 
 
 ## 12. Deployment Strategy
 
-**La build no despliega nada.** Los scripts de `deploy/` (pasos 19 y 20) se validan con `bash -n` y pruebas estáticas; el despliegue real, las alertas de presupuesto y el resto son las puertas manuales M1–M14 de §20.1, con dueño (Steven) y comando exacto.
+**La build no despliega nada.** Los scripts de `deploy/` (pasos 20 y 21) se validan con `bash -n` y pruebas estáticas; el despliegue real, las alertas de presupuesto y el resto son las puertas manuales M1–M14 de §20.1, con dueño (Steven) y comando exacto.
 
 ### Hosting
 
@@ -2031,7 +2106,7 @@ El servidor y el navegador se comunican **directamente** (el navegador llama a l
 
 ### CI/CD
 
-`.github/workflows/ci.yml` (paso 20) corre en cada push y pull request, con Node desde `.nvmrc`, pnpm 11.28.2 por corepack, JDK 21 y Chromium: `pnpm install --frozen-lockfile` → `pnpm typecheck` → `pnpm lint` → `pnpm test` → `pnpm build` → `node scripts/smoke-server.mjs` → `node scripts/check-pwa.mjs` → `node scripts/check-no-hex.mjs` → `node deploy/check-bundle-budget.mjs` → `pnpm eval` → `pnpm test:e2e` → `pnpm test:e2e:full`. Es el mismo conjunto que la puerta automática de §20.1 y `tests/repo/ci-parity.test.ts` lo exige. **No hay despliegue automático**: el despliegue es manual (M4–M5) para que ningún merge pueda gastar crédito sin que Steven lo decida. Nivel de CI: Tier 0/1 (un solo desarrollador; las comprobaciones son la protección).
+`.github/workflows/ci.yml` (paso 21) corre en cada push y pull request, con Node desde `.nvmrc`, pnpm 11.28.2 por corepack, JDK 21 y Chromium (`playwright install --with-deps`), un paso `test -f .env || cp .env.example .env` antes de `pnpm build`: `pnpm install --frozen-lockfile` → `pnpm typecheck` → `pnpm lint` → `pnpm test` → `pnpm build` → `node scripts/smoke-server.mjs` → `node scripts/check-pwa.mjs` → `node scripts/check-no-hex.mjs` → `node deploy/check-bundle-budget.mjs` → `pnpm eval` → `pnpm test:e2e` → `pnpm test:e2e:full`. Es el mismo conjunto que la puerta automática de §20.1 y `tests/repo/ci-parity.test.ts` lo exige. **No hay despliegue automático**: el despliegue es manual (M4–M5) para que ningún merge pueda gastar crédito sin que Steven lo decida. Nivel de CI: Tier 0/1 (un solo desarrollador; las comprobaciones son la protección).
 
 ### Release and rollback
 
@@ -2234,9 +2309,9 @@ Nunca se depende de una skill: si falta, el constructor sigue con las guías de 
 | Skill | Build steps | Why | Install |
 |---|---|---|---|
 | ui-ux-pro-max | Antes del paso 2 (y revisión en el paso 7) | Valida la jerarquía visual y el sistema de componentes contra §7 (la paleta ya es literal) | `/plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill` luego `/plugin install ui-ux-pro-max@ui-ux-pro-max-skill` |
-| emil-design-eng | Pasos 10, 11 y 17 (movimiento) | Curvas y duraciones del dibujo a 60 fps, el trazo del fantasma y el sello de 400 ms de un solo pulso; entrégale una pregunta concreta | `npx skills@latest add emilkowalski/skills` |
-| frontend-design | Pasos 6, 7, 17 y 18 (pantallas) | Pantallas distintivas y sobrias que usan los tokens | `/plugin marketplace add anthropics/skills` luego `/plugin install example-skills@anthropic-agent-skills` |
-| playwright-cli | Pasos 3, 6 y 10 | Redactar y depurar las especificaciones e2e (auth, monitor con micrófono falso) | `npm install -g @playwright/cli@latest` luego `playwright-cli install --skills` |
+| emil-design-eng | Pasos 10, 11 y 18 (movimiento) | Curvas y duraciones del dibujo a 60 fps, el trazo del fantasma y el sello de 400 ms de un solo pulso; entrégale una pregunta concreta | `npx skills@latest add emilkowalski/skills` |
+| frontend-design | Pasos 6, 7, 18 y 19 (pantallas) | Pantallas distintivas y sobrias que usan los tokens | `/plugin marketplace add anthropics/skills` luego `/plugin install example-skills@anthropic-agent-skills` |
+| playwright-cli | Pasos 6, 7, 8, 10 y 18 (especificaciones e2e) | Redactar y depurar las especificaciones e2e (auth, monitor con micrófono falso) | `npm install -g @playwright/cli@latest` luego `playwright-cli install --skills` |
 | /claude-seo-ai:audit | **Fuera de v1** (recomendación posterior si algún día hay sitio de marketing) | SEO y visibilidad en respuestas de IA; no aplica a una app tras login | `/plugin marketplace add Hainrixz/claude-seo-ai` luego `/plugin install claude-seo-ai@claude-seo-ai` y `/reload-plugins` |
 | /humanizalo | **Fuera de v1** (idem: copy de marketing) | Pulir textos escritos; el copy de la UI es breve y vive en `es.ts` | `git clone https://github.com/Hainrixz/humanizalo.git ~/.claude/skills/humanizalo` |
 
@@ -2266,7 +2341,7 @@ Archivo real: `workspace/AGENTS.md`, **27 líneas**: qué es el proyecto, tabla 
 
 ### 19.3 `.claude/settings.json`
 
-Archivo real: `workspace/.claude/settings.json`, JSON válido con **57 entradas en `permissions.allow`** y **8 en `permissions.deny`**. Cubre **todo comando que aparece en los `Verify` de §9 y en la puerta automática de §20.1**: `pnpm install:*`, `pnpm typecheck`, `pnpm lint`, `pnpm test` y `pnpm test:*` (unit, emu, e2e, e2e:full, coverage), `pnpm build`, `pnpm eval:*`, `pnpm --filter:*`, `pnpm exec playwright:*`/`biome:*`/`vitest:*`/`tsc:*`/`firebase emulators:*`, `jq`, `tail`, `node scripts/smoke-server.mjs`, `node scripts/check-no-hex.mjs`, `node scripts/check-pwa.mjs`, `node deploy/check-bundle-budget.mjs`, y los auxiliares de las aserciones (`grep`, `test`, `wc`, `tr`, `bash -n`, `ls`, `cat`, `curl`), más `git` (status, diff, log, add, commit, tag, ls-files, check-ignore, rev-parse, rev-list, grep, config, init, `reset --hard step-`), `rsync -a --ignore-existing`, `corepack`, `java -version`, `node -v` y `pnpm -v` del Bootstrap. **Denegados:** leer `.env`, `.env.local` y `.env.*.local`, `git push`, **todo `gcloud`**, `firebase deploy`, `pnpm spike:stt` y `rm -rf`: el despliegue, el spike y las alertas son puertas manuales de Steven, nunca automáticas.
+Archivo real: `workspace/.claude/settings.json`, JSON válido con **58 entradas en `permissions.allow`** y **8 en `permissions.deny`**. Cubre **todo comando que aparece en los `Verify` de §9 y en la puerta automática de §20.1**: `pnpm install:*`, `pnpm typecheck`, `pnpm lint`, `pnpm test` y `pnpm test:*` (unit, emu, e2e, e2e:full, coverage), `pnpm build`, `pnpm eval:*`, `pnpm --filter:*`, `pnpm exec playwright:*`/`biome:*`/`vitest:*`/`tsc:*`/`firebase emulators:*`, `jq`, `tail`, `node scripts/smoke-server.mjs`, `node scripts/check-no-hex.mjs`, `node scripts/check-pwa.mjs`, `node deploy/check-bundle-budget.mjs`, y los auxiliares de las aserciones (`grep`, `test`, `wc`, `tr`, `bash -n`, `ls`, `cat`, `curl`), más `git` (status, diff, log, add, commit, tag, ls-files, check-ignore, rev-parse, rev-list, grep, config, init, `reset --hard step-`), `rsync -a --ignore-existing`, `corepack`, `cp .env.example .env`, `java -version`, `node -v` y `pnpm -v` del Bootstrap. **Denegados:** leer `.env`, `.env.local` y `.env.*.local`, `git push`, **todo `gcloud`**, `firebase deploy`, `pnpm spike:stt` y `rm -rf`: el despliegue, el spike y las alertas son puertas manuales de Steven, nunca automáticas.
 
 ### 19.4 Project skills — `.claude/skills/<name>/SKILL.md`
 
@@ -2302,16 +2377,16 @@ Todos estos archivos son **reales, con contenido completo, bajo `workspace/`**, 
 | Biome | `biome.json` | todos (`pnpm lint`) | `css.parser.tailwindDirectives: true`; `assist.organizeImports: off`; JSON y CSS sin formatear; `noExplicitAny: error` | `"!blueprints"` en `files.includes` |
 | TypeScript | `tsconfig.base.json`, `tsconfig.json`, `packages/shared/tsconfig.json` y `tsconfig.build.json`, `apps/server/tsconfig.json` y `tsconfig.build.json`, `apps/web/tsconfig.json` | 1–20 (`typecheck`, `build`) | `allowImportingTsExtensions` + `rewriteRelativeImportExtensions`; server y web: `paths` de `@pulso/shared` → fuente; builds del servidor: `paths: {}` (resuelve el paquete compilado) | `"exclude": ["**/node_modules", "**/dist", "blueprints"]` (base y raíz); los demás solo `include` sus carpetas |
 | Vitest | `vitest.config.ts` | 1–20 (`pnpm test*`) | 4 proyectos (`shared`, `server`, `web`, `emulator`); alias `@pulso/shared` → fuente; `setupFiles`; jsdom + plugin React para web; el sufijo `?worker&url` (solo en `apps/web/src/audio/worklet-url.ts`) no se carga en pruebas: se mockea con `vi.mock` | `"blueprints/**"` en `exclude` |
-| Playwright | `playwright.config.ts` | 2, 6, 7, 8, 10, 17, 18, 19, 20 | proyectos `ui`/`app` (`E2E_FULL=1`); `webServer` con `env` propio (emuladores, servidor e2e, Vite `--mode e2e`) y, si existe `apps/web/dist`, `vite preview` en 4173 (bundle de producción, usado por `worklet.spec.ts`); micrófono falso con `--use-file-for-fake-audio-capture` | `testIgnore: ["**/node_modules/**", "**/blueprints/**"]` |
-| Setup de e2e | `tests/e2e/global-setup.ts` | 2, 6, 7, 8, 10, 17, 18, 19, 20 | Autocontenido: escribe `tests/e2e/.tmp/voice.wav` (no importa código del producto) | n/a (solo corre cuando lo invoca Playwright) |
-| Setup de pruebas del servidor | `apps/server/tests/setup.ts` | 1, 3–20 | Valores por defecto con `??=` de todas las variables (respeta lo que exporta `firebase emulators:exec`); IDs de modelo falsos (`test-*`) | n/a |
-| Setup de pruebas web | `apps/web/tests/setup.ts` | 1, 2, 6–20 | `IS_REACT_ACT_ENVIRONMENT = true`, `TZ=UTC` y los valores por defecto `VITE_*` de `.env.example` (`??=`) | n/a |
-| Vite | `apps/web/vite.config.ts` | 1, 7, 8, 10, 19 (`pnpm build`, e2e) | `envDir` = raíz; alias `@pulso/shared` → fuente; proxy `/api`, `/health`, `/ws`; PWA (manifest, workbox `navigateFallbackDenylist`); Tailwind | n/a (Vite parte de `apps/web`) |
-| Firebase | `firebase.json`, `.firebaserc`, `firestore.rules`, `firestore.indexes.json`, `storage.rules` | 3–7, 14–20 (`pnpm test:emu`, `test:e2e:full`) | Emuladores Auth 9099 / Firestore 8080 / Storage 9199 en `127.0.0.1`; proyecto `demo-pulso`; Hosting `public: apps/web/dist` | n/a (la CLI no recorre el árbol) |
+| Playwright | `playwright.config.ts` | 2, 6, 7, 8, 10, 18, 19, 20, 21 | proyectos `ui`/`app` (`E2E_FULL=1`); `webServer` con `env` propio (emuladores, servidor e2e, Vite `--mode e2e`) y, si existe `apps/web/dist`, `vite preview` en 4173 (bundle de producción, usado por `worklet.spec.ts`); micrófono falso con `--use-file-for-fake-audio-capture` | `testIgnore: ["**/node_modules/**", "**/blueprints/**"]` |
+| Setup de e2e | `tests/e2e/global-setup.ts` | 2, 6, 7, 8, 10, 18, 19, 20, 21 | Autocontenido: escribe `tests/e2e/.tmp/voice.wav` (no importa código del producto) | n/a (solo corre cuando lo invoca Playwright) |
+| Setup de pruebas del servidor | `apps/server/tests/setup.ts` | 1, 3–21 | Valores por defecto con `??=` de todas las variables (respeta lo que exporta `firebase emulators:exec`); IDs de modelo falsos (`test-*`) | n/a |
+| Setup de pruebas web | `apps/web/tests/setup.ts` | 1, 2, 6–21 | `IS_REACT_ACT_ENVIRONMENT = true`, `TZ=UTC` y los valores por defecto `VITE_*` de `.env.example` (`??=`) | n/a |
+| Vite | `apps/web/vite.config.ts` | 1, 7, 8, 10, 20 (`pnpm build`, e2e) | `envDir` = raíz; alias `@pulso/shared` → fuente; proxy `/api`, `/health`, `/ws`; PWA (manifest, workbox `navigateFallbackDenylist`); Tailwind | n/a (Vite parte de `apps/web`) |
+| Firebase | `firebase.json`, `.firebaserc`, `firestore.rules`, `firestore.indexes.json`, `storage.rules` | 3–7, 14–21 (`pnpm test:emu`, `test:e2e:full`) | Emuladores Auth 9099 / Firestore 8080 / Storage 9199 en `127.0.0.1`; proyecto `demo-pulso`; Hosting `public: apps/web/dist` | n/a (la CLI no recorre el árbol) |
 | Entorno | `.env.example`, `.env.e2e` | 1 (humo), 6 (e2e) | Todas las claves con valores locales; `smoke-server.mjs` lee `.env.example` | n/a |
 | Ignore | `.gitignore`, `.dockerignore` | Bootstrap, M13 | Excepciones `!.env.example`, `!.env.e2e` | `.dockerignore`: `blueprints`; `.gitignore` NO ignora `blueprints/` a propósito (el bundle debe poder commitearse) |
-| Imagen | `Dockerfile` | M13, `tests/repo/deploy-config.test.ts` (20) | `CMD ["node", "dist/index.js"]`, `WORKDIR /app/apps/server`, Node `24.21.0-bookworm-slim` | `.dockerignore` excluye `blueprints` |
-| Iconos | `apps/web/public/icons/*.png`, `scripts/make-icons.mjs` | 7 (`check-pwa`), 20 | PNG de 180/192/512 generados con Node puro; `pnpm icons` los regenera | n/a |
+| Imagen | `Dockerfile` | M13, `tests/repo/deploy-config.test.ts` (21) | `CMD ["node", "dist/index.js"]`, `WORKDIR /app/apps/server`, Node `24.21.0-bookworm-slim` | `.dockerignore` excluye `blueprints` |
+| Iconos | `apps/web/public/icons/*.png`, `scripts/make-icons.mjs` | 7 (`check-pwa`), 21 | PNG de 180/192/512 generados con Node puro; `pnpm icons` los regenera | n/a |
 
 **Servicios que una puerta necesita (regla de cuatro partes).** No hay base de datos relacional ni `docker-compose.yml`: los servicios son los emuladores de Firebase. (1) *Lo que los arranca:* `firebase.json` (sección `emulators`) más `firebase-tools` fijado en §11; la CLI descarga los emuladores la primera vez (requiere red y JDK 21+). (2) *La variable que apunta a ellos:* `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080`, `FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099`, `FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199` en §10 y `.env.example`; `firebase emulators:exec` las exporta al comando que envuelve. (3) *Los comandos:* `pnpm emulators` (arriba), `pnpm test:emu` (arriba, ejecuta y apaga; el "reset" es que cada ejecución parte de datos vacíos) en §10 y en la tabla de `CLAUDE.md`. (4) *El permiso:* `Bash(pnpm emulators:*)`, `Bash(pnpm test:*)` y `Bash(pnpm exec firebase emulators:*)` en `settings.json`.
 
@@ -2334,27 +2409,29 @@ Todos estos archivos son **reales, con contenido completo, bajo `workspace/`**, 
 
 | Shared value | Single source — the file that decides it | Literal value | Every other place it appears | Compared |
 |---|---|---|---|---|
-| Entrada compilada del servidor | `apps/server/tsconfig.build.json` (`outDir: dist`, `rootDir: src`, entrada `src/index.ts`) | `apps/server/dist/index.js` | `apps/server/package.json` — `main` `dist/index.js` y `scripts.start` `node dist/index.js` · `Dockerfile` — `WORKDIR /app/apps/server` + `CMD ["node", "dist/index.js"]` · `scripts/smoke-server.mjs` (paso 1) — `node apps/server/dist/index.js` · §9 pasos 1 y 20, §12, §20.1 | yes |
+| Entrada compilada del servidor | `apps/server/tsconfig.build.json` (`outDir: dist`, `rootDir: src`, entrada `src/index.ts`) | `apps/server/dist/index.js` | `apps/server/package.json` — `main` `dist/index.js` y `scripts.start` `node dist/index.js` · `Dockerfile` — `WORKDIR /app/apps/server` + `CMD ["node", "dist/index.js"]` · `scripts/smoke-server.mjs` (paso 1) — `node apps/server/dist/index.js` · §9 pasos 1 y 21, §12, §20.1 | yes |
 | Salida del paquete compartido | `packages/shared/tsconfig.build.json` (`outDir: dist`) | `packages/shared/dist/index.js` y `dist/index.d.ts` | `packages/shared/package.json` — `main`, `types`, `exports["."]` · paso 1 (criterio 4) · `Dockerfile` | yes |
-| Salida de la web | Valor por defecto de Vite (`build.outDir` no se cambia) | `apps/web/dist` | `firebase.json` — `hosting.public` · `scripts/check-pwa.mjs` y `deploy/check-bundle-budget.mjs` (pasos 7 y 19) · paso 1 (`test -f apps/web/dist/index.html`) · `.dockerignore` | yes |
+| Salida de la web | Valor por defecto de Vite (`build.outDir` no se cambia) | `apps/web/dist` | `firebase.json` — `hosting.public` · `scripts/check-pwa.mjs` y `deploy/check-bundle-budget.mjs` (pasos 7 y 20) · paso 1 (`test -f apps/web/dist/index.html`) · `.dockerignore` | yes |
 | Puerto del servidor local | `.env.example` — `PORT` | `8787` | `apps/web/vite.config.ts` (`apiTarget`) · `playwright.config.ts` (`serverPort`, `PORT`, `SWEEP_AUDIENCE`) · `.env.example` (`SWEEP_AUDIENCE`) · `apps/server/tests/setup.ts` (`SWEEP_AUDIENCE`) · §10 y §12 | yes |
 | Puerto de la web | `apps/web/vite.config.ts` (`server.port`) | `5173` | `playwright.config.ts` (`webPort`) · `.env.example` (`WEB_ORIGINS`) · `apps/server/tests/setup.ts` (`WEB_ORIGINS`) · §10 | yes |
 | Puertos de emuladores | `firebase.json` (`emulators`) | auth `9099`, firestore `8080`, storage `9199` | `.env.example` (3 variables `*_EMULATOR_HOST`) · `playwright.config.ts` (`serverEnv` y URL de espera) · `apps/web/src/lib/firebase.ts` (paso 6: `connectAuthEmulator`/`connectFirestoreEmulator`) · §10 | yes |
 | Id de proyecto Firebase | `.firebaserc` (`default`) | `demo-pulso` | `package.json` (`emulators`, `test:emu`: `--project demo-pulso`) · `.env.example` y `.env.e2e` (`VITE_FIREBASE_PROJECT_ID`, `GOOGLE_CLOUD_PROJECT`) · `playwright.config.ts` · `apps/server/tests/setup.ts` | yes |
 | Nombres de paquete | Cada `package.json` (`name`) | `@pulso/shared`, `@pulso/server`, `@pulso/web` | `package.json` raíz (`--filter`) · dependencias `workspace:*` · `vitest.config.ts` (alias) · `vite.config.ts` (alias) · `Dockerfile` · CLAUDE.md · `playwright.config.ts` (`pnpm --filter @pulso/server start:e2e`) | yes |
-| Versión de Node | `.nvmrc` | `24` | `package.json` (`engines.node` `>=24.21.0 <25`) · `Dockerfile` (`node:24.21.0-bookworm-slim`) · `.github/workflows/ci.yml` (`node-version-file: .nvmrc`, paso 20) · §10 y §11 | yes |
-| Versión de pnpm | `package.json` (`packageManager`) | `pnpm@11.28.2` | `Dockerfile` (`corepack prepare pnpm@11.28.2`) · §10 Bootstrap · ci.yml (paso 20) · §11 | yes |
+| Versión de Node | `.nvmrc` | `24` | `package.json` (`engines.node` `>=24.21.0 <25`) · `Dockerfile` (`node:24.21.0-bookworm-slim`) · `.github/workflows/ci.yml` (`node-version-file: .nvmrc`, paso 21) · §10 y §11 | yes |
+| Versión de pnpm | `package.json` (`packageManager`) | `pnpm@11.28.2` | `Dockerfile` (`corepack prepare pnpm@11.28.2`) · §10 Bootstrap · ci.yml (paso 21) · §11 | yes |
 | Color de la marca en el manifiesto | `apps/web/src/styles/tokens.css` (`--p-dark-bg`) | `#0B0D0C` | `apps/web/vite.config.ts` (`manifestColor`) · `CLAUDE.md` y §7 (tabla de diseño) · `tests/repo/tokens-parity.test.ts` (paso 7) | yes |
 | Clave de tema | `apps/web/public/theme-init.js` | `pulso-theme` | `apps/web/src/lib/theme.ts` (paso 7) · `apps/web/src/theme-init.test.ts` (paso 2) · §6 | yes |
 | WAV del micrófono falso | `tests/e2e/global-setup.ts` | `tests/e2e/.tmp/voice.wav` | `playwright.config.ts` (`fakeVoiceWav`) · `.gitignore` (`tests/e2e/.tmp/`) · §13 | yes |
 | Usuario de prueba | `.env.example` — `ALLOWED_EMAILS` | `e2e@pulso.test` / `pulso-test-1234` | `playwright.config.ts` (`ALLOWED_EMAILS`) · `apps/web/src/routes/Entrar.tsx` (paso 6) · `apps/server/tests/helpers/emulator-auth.ts` (paso 5) · §4 | yes |
-| Prefijo y antigüedad del audio temporal | `deploy/storage-lifecycle.json` (paso 20) | `tmp/` y `age: 1` | `apps/server/src/storage/audio-store.ts` y `sweeper.ts` (24 h) · `storage.rules` (comentario) · §4 y §5 | yes |
-| Banderas de despliegue del servidor | `deploy/deploy-server.sh` (paso 20) | `--min-instances 0 --max-instances 3 --timeout 600` | §12 (tabla de Hosting) · §14 (rate limiting: "`--max-instances 3`") · §16 (costo: "`--max-instances 3`") · `tests/repo/deploy-config.test.ts` (paso 20) | yes |
-| Nombre del job del barredor | `deploy/scheduler.sh` (paso 20) | `pulso-sweep-audio` | M7 (`gcloud scheduler jobs run pulso-sweep-audio`) · `tests/repo/deploy-config.test.ts` (paso 20) · `deploy/RUNBOOK.md` | yes |
+| Prefijo y antigüedad del audio temporal | `deploy/storage-lifecycle.json` (paso 21) | `tmp/` y `age: 1` | `apps/server/src/storage/audio-store.ts` y `sweeper.ts` (24 h) · `storage.rules` (comentario) · §4 y §5 | yes |
+| Banderas de despliegue del servidor | `deploy/deploy-server.sh` (paso 21) | `--min-instances 0 --max-instances 3 --timeout 600` | §12 (tabla de Hosting) · §14 (rate limiting: "`--max-instances 3`") · §16 (costo: "`--max-instances 3`") · `tests/repo/deploy-config.test.ts` (paso 21) | yes |
+| Nombre del job del barredor | `deploy/scheduler.sh` (paso 21) | `pulso-sweep-audio` | M7 (`gcloud scheduler jobs run pulso-sweep-audio`) · `tests/repo/deploy-config.test.ts` (paso 21) · `deploy/RUNBOOK.md` | yes |
 | Nombres de variable de entorno | `apps/server/src/env.ts` (esquema, pasos 4, 5, 14, 15, 16) | los de la tabla de §10 | `.env.example` · `apps/server/tests/setup.ts` · `apps/server/tests/helpers/env.ts` (`baseEnv`, paso 4: lee todas las claves de `.env.example`) · `playwright.config.ts` (`serverEnv`) · `CLAUDE.md` (tabla Environment) | yes |
 | Constantes de audio | `packages/shared/src/constants.ts` (paso 8) | 16000 Hz · 1600 muestras · 270 s · 32000 B/s · 25000 B | `ws/audio-gateway.ts` (paso 14) · worklet (paso 8) · §5 · `.claude/rules/dsp-shared.md` | yes |
+| Puerto de la vista previa del bundle de producción | `apps/web/package.json` — `scripts.preview` (`vite preview --host 127.0.0.1 --port 4173 --strictPort`) | `4173` | `playwright.config.ts` (`previewPort`, URL de espera del `webServer`) · `tests/e2e/ui/pwa.spec.ts` (paso 7) y `tests/e2e/ui/worklet.spec.ts` (paso 8): `http://127.0.0.1:4173/entrar` · §19.6 (fila de Playwright) | yes |
+| Valores por defecto del entorno de pruebas | `.env.example` | Iguales a `.env.example`: `GOOGLE_CLOUD_PROJECT=demo-pulso`, `STT_LOCATION=us`, `STT_LANGUAGE=es-US`, `STT_DAILY_SECONDS_PER_ORG=1800`, `STT_PRICE_USD_PER_MIN=0.016`, `STORAGE_BUCKET=demo-pulso.appspot.com`, `SCHEDULER_SA_EMAIL=scheduler@demo-pulso.iam.gserviceaccount.com`, `GEMINI_LOCATION=global`, `FILLERS_FROM_AUDIO=true`, `SWEEP_AUDIENCE=http://127.0.0.1:8787`, los tres `*_EMULATOR_HOST` y los siete `VITE_*` | `apps/server/tests/setup.ts` (los iguales anteriores salvo emuladores, que exporta `firebase emulators:exec`) · `playwright.config.ts` `serverEnv` (los iguales y los emuladores) · `apps/web/tests/setup.ts` (los siete `VITE_*`). **Difieren a propósito:** `NODE_ENV`, `PORT` (`0` en `setup.ts`), `GIT_SHA`, `LOG_LEVEL`, `ALLOWED_EMAILS` (`allowed@pulso.test,second@pulso.test` en `setup.ts`; `e2e@pulso.test` en Playwright), `WEB_ORIGINS` (solo `http://127.0.0.1:5173` en pruebas), `STT_MODEL`/`GEMINI_MODEL` (`test-stt-model`/`test-llm-model`, nunca un ID real) y `GEMINI_TIMEOUT_MS` (`5000`) | yes |
 
-Cada fila se comparó carácter por carácter contra los archivos emitidos (los puertos, el id de proyecto, los colores, las versiones y las claves se verificaron con `grep` sobre `workspace/`); las apariciones en archivos que escribe un paso (marcadas con su número) se vuelven a comprobar en la puerta de ese paso. **Primer paso donde existen ambos lados y que ejercita el contrato:** entrada del servidor → paso 1 (`smoke-server.mjs` ejecuta `dist/index.js`); salida de la web → paso 1 (`test -f`), paso 7 (`check-pwa`) y paso 8 (`worklet.spec.ts` carga el bundle servido por `vite preview`); color del manifiesto → paso 7 (`tokens-parity`); emuladores y proyecto → paso 3 (`test:emu`); usuario de prueba → paso 6 (e2e de auth); audio temporal → pasos 15 y 20; banderas de despliegue y nombre del job → paso 20 (`deploy-config.test.ts`).
+Cada fila se comparó carácter por carácter contra los archivos emitidos (los puertos, el id de proyecto, los colores, las versiones y las claves se verificaron con `grep` sobre `workspace/`); las apariciones en archivos que escribe un paso (marcadas con su número) se vuelven a comprobar en la puerta de ese paso. **Primer paso donde existen ambos lados y que ejercita el contrato:** entrada del servidor → paso 1 (`smoke-server.mjs` ejecuta `dist/index.js`); salida de la web → paso 1 (`test -f`), paso 7 (`check-pwa`) y paso 8 (`worklet.spec.ts` carga el bundle servido por `vite preview`); color del manifiesto → paso 7 (`tokens-parity`); emuladores y proyecto → paso 3 (`test:emu`); usuario de prueba → paso 6 (e2e de auth); audio temporal → pasos 15 y 21; banderas de despliegue y nombre del job → paso 21 (`deploy-config.test.ts`); puerto de la vista previa → pasos 7 y 8 (`pwa.spec.ts`, `worklet.spec.ts`).
 
 #### Byte-exact artifact reconciliation
 
@@ -2362,7 +2439,7 @@ Cada fila se comparó carácter por carácter contra los archivos emitidos (los 
 |---|---|---|---|---|---|
 | Hex y razones de contraste de la tabla de §7 (copiada a `tokens.css` y a `tokens.test.ts`) | §7 (paso 2 la copia) | Paso 2 (`tokens.test.ts`, tolerancia 0.05; no es una igualdad de cadenas) | §7: umbrales (texto ≥ 4.5, controles ≥ 3); `signal`/`ghost` casi isoluminosos | Fórmula WCAG 2.x sobre los 20 hex (script ejecutado el 2026-10-04): oscuro text 16.71/15.64/14.19, secondary 8.79/8.23/7.47, signal 10.93/10.23/9.28, ghost 12.01/11.25/10.20, alert 7.12/6.67/6.05, border-strong 4.18/3.91/3.55, focus 10.40/9.73/8.83; claro text 15.61/17.01/13.90, secondary 6.55/7.14/5.83, signal 4.89/5.33/4.35, ghost 5.76/6.28/5.13, alert 5.31/5.79/4.73, border-strong 3.93/4.28/3.50, focus 5.78/6.30/5.15 — idénticas a las de la tabla | yes |
 | `firestore.indexes.json` | §19.6 (emitido) | Paso 3 (`tests/repo/firestore-indexes.test.ts`) | §4 Indexes: exención de `sessions.contour` y compuesto `profileId + startedAt` | La prueba afirma propiedades del JSON parseado (no una igualdad de bytes); la forma `fieldOverrides[].indexes: []` es la documentada por Firebase | yes (propiedad, no bytes) |
-| `deploy/storage-lifecycle.json` | Paso 20 | Paso 20 (`deploy-config.test.ts`) | §5 y §14: `age: 1` sobre `tmp/` | La prueba afirma propiedades; el aceptado por `gcloud storage buckets update --lifecycle-file` se verifica en la puerta manual M6 (VERIFICAR) | yes (propiedad, no bytes) |
+| `deploy/storage-lifecycle.json` | Paso 21 | Paso 21 (`deploy-config.test.ts`) | §5 y §14: `age: 1` sobre `tmp/` | La prueba afirma propiedades; el aceptado por `gcloud storage buckets update --lifecycle-file` se verifica en la puerta manual M6 (VERIFICAR) | yes (propiedad, no bytes) |
 
 Ninguna puerta compara contra una cadena producida por el runtime (mensajes de error, claves ordenadas, formatos de número): las comprobaciones son propiedades (esquemas, campos, umbrales).
 
@@ -2406,9 +2483,11 @@ git check-ignore -q .env.e2e; test $? -eq 1
 git check-ignore -q pnpm-lock.yaml; test $? -eq 1
 git check-ignore -q blueprints/pulso/tasks.json; test $? -eq 1
 git check-ignore -q tests/e2e/.tmp/voice.wav; test $? -eq 0   # 0 = ignorado a propósito
-test "$(git log --diff-filter=A --format=%H -- .gitignore | tail -1)" = "$(git rev-list --max-parents=0 HEAD)"   # el .gitignore entró en el primer commit de Bootstrap
+test -z "$(git ls-files -ci --exclude-standard)"   # expect: exit 0 — ningún archivo ignorado está trackeado
 git grep -n "BEGIN PRIVATE KEY" -- ':!blueprints'; test $? -eq 1   # 1 = sin coincidencias (2 sería un error de uso)
 ```
+
+**Nota sobre permisos:** la primera línea de este bloque usa `$()` y un `for`; un ejecutor no interactivo puede pedir confirmación porque el patrón `Bash(for:*)` no está en la lista de permitidos. Es equivalente a ejecutar `git rev-parse -q --verify refs/tags/<etiqueta>` por cada valor de `.[].checkpoint` de `tasks.json`; ejecutar esas comprobaciones una a una es válido.
 
 Además, estas puertas se marcan una vez antes del lanzamiento:
 
@@ -2427,7 +2506,7 @@ Dependen de credenciales reales de Google, de un dispositivo físico o de una pe
 | M2 | APIs habilitadas | `gcloud services enable run.googleapis.com speech.googleapis.com aiplatform.googleapis.com firestore.googleapis.com storage.googleapis.com cloudscheduler.googleapis.com billingbudgets.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project <PROYECTO>` | Sale 0 |
 | M3 | Alertas de presupuesto 50/80/100 % | `PROJECT=<PROYECTO> BILLING_ACCOUNT=<CUENTA> bash deploy/budget-alerts.sh` y luego `gcloud billing budgets list --billing-account=<CUENTA>` | Un presupuesto con umbrales 0.5, 0.8 y 1.0 (las alertas tardan horas en llegar; **solo alertan, no limitan**) |
 | M4 | Despliegue del servidor y ensayo de rollback | `PROJECT=<PROYECTO> bash deploy/deploy-server.sh`; `curl -s "$SERVER_URL/health/deep" \| jq -e '.ok == true'`; ensayo: `gcloud run services update-traffic pulso-server --region us-central1 --to-revisions=<REVISION_ANTERIOR>=100`; `pnpm audit --prod` revisado | `/health/deep` responde `ok`; el rollback tarda segundos |
-| M5 | Despliegue de la web, reglas e índices | `PROJECT=<PROYECTO> bash deploy/deploy-web.sh`; añadir el dominio de Hosting a los dominios autorizados de Firebase Auth | La app carga por HTTPS en `https://<proyecto>.web.app` |
+| M5 | Despliegue de la web, reglas e índices | Crear `.env.production.local` (gitignored) con los `VITE_*` reales del proyecto (Vite lo prioriza sobre `.env`, que trae los valores del emulador); `PROJECT=<PROYECTO> bash deploy/deploy-web.sh`; añadir el dominio de Hosting a los dominios autorizados de Firebase Auth | La app carga por HTTPS en `https://<proyecto>.web.app` |
 | M6 | Bucket: soft delete 0 y lifecycle | `PROJECT=<PROYECTO> BUCKET=<BUCKET> bash deploy/storage-setup.sh` y `gcloud storage buckets describe gs://<BUCKET> --format=json \| jq '.soft_delete_policy'` | Retención de soft delete en 0 y regla `age:1` sobre `tmp/` aplicada (puede tardar hasta 24 h; VERIFICAR el nombre exacto del campo en la salida) |
 | M7 | Barredor horario | `PROJECT=<PROYECTO> SERVER_URL=<URL> bash deploy/scheduler.sh`; `gcloud scheduler jobs run pulso-sweep-audio --location us-central1` y leer el log | Respuesta `{ "deleted": 0 }` (o el número de objetos viejos); VERIFICAR precio y cuota de Cloud Scheduler antes |
 | M8 | **Spike en vivo de STT** | `gcloud auth application-default login`, `export GOOGLE_CLOUD_PROJECT=<PROYECTO>` (no uses un `.env` copiado de `.env.example`: apunta a `demo-pulso` y a los emuladores) y `pnpm spike:stt ./muestra.wav` (un WAV real de Steven hablando español con muletillas, 16 kHz mono PCM16). Criterio: ¿`long`@`us` entrega transcripción final por enunciado y `confidence`? ¿aparecen las muletillas en el texto? | Si `long`@`us` sirve: se deja la configuración. Si no: `STT_MODEL=chirp_2` y `STT_LOCATION=us-central1`. Si omite muletillas: `FILLERS_FROM_AUDIO=true` se mantiene. Registrar la decisión en el decision log |
@@ -2435,7 +2514,7 @@ Dependen de credenciales reales de Google, de un dispositivo físico o de una pe
 | M10 | iPhone real | Instalar la PWA en iOS, abrir Monitor, conceder el micrófono, grabar 30 s sin cambiar de pantalla, iniciar sesión con Google (redirect con `authDomain` propio) | El permiso persiste, el monitor dibuja y el sign-in vuelve a la app. Si falla: abrir un hallazgo (R6) |
 | M11 | Lector de pantalla | Pasada con NVDA + Firefox y VoiceOver (Safari e iOS) sobre Monitor, Frase Perfecta y Reporte, con notas en el repositorio | El resumen en vivo se anuncia sin ruido; cada pantalla se completa a oído |
 | M12 | Decisión antes del día 80 | En Ajustes → "Exportar mis datos" (guardar `pulso-datos.json`) y decidir **migrar o actualizar la cuenta** antes de `CREDITS_EXPIRY_DATE` − 10 días. Al vencer o agotarse el crédito la cuenta de prueba se cierra y los recursos se detienen, con 30 días de gracia antes del borrado permanente | Exportación guardada fuera de Google y decisión escrita en el runbook |
-| M13 | Imagen Docker | `docker build -t pulso-server .` y `docker run --rm -p 8080:8080 --env-file .env.example -e PORT=8080 pulso-server`, luego `curl -s localhost:8080/health \| jq -e '.ok == true'` | Responde `ok`; confirmar también que la etiqueta `node:24.21.0-bookworm-slim` existe |
+| M13 | Imagen Docker | `docker build -t pulso-server .` y `docker run --rm -p 8080:8080 --env-file .env.example -e PORT=8080 pulso-server`, luego `curl -s localhost:8080/health \| jq -e '.ok == true'` | Responde `ok`|
 | M14 | Producción y error tracking | Fijar las variables de §10 en Cloud Run (`ALLOWED_EMAILS`, `WEB_ORIGINS`, `STT_*`, `GEMINI_*`, …); provocar un error de prueba y comprobar que aparece en Error Reporting con el SHA; recorrer los flujos críticos de §13 contra la URL de producción | Variables presentes en producción y ausentes del repositorio; el error aparece |
 
 **Los avisos no se ignoran.** Una advertencia tolerada se vuelve permanente y la siguiente real se esconde dentro.
@@ -2444,15 +2523,15 @@ Dependen de credenciales reales de Google, de un dispositivo físico o de una pe
 
 | Risk | Likelihood | Impact | Early signal | Mitigation |
 |---|---|---|---|---|
-| **R1** La fantasma "según el texto" está mal definida (el contorno ideal no coincide con lo que Steven considera buena oratoria) | M | H | En la semana de línea base, Steven reporta que el fantasma "no se parece" a una buena entrega, o que `trackingPct` queda < 40 % con entregas que él considera buenas | Algoritmo determinista + marcas de Gemini como datos (§2); constantes de perfiles en un solo archivo (`profiles.ts`) para ajustar sin tocar el generador; validar con Steven en la línea base. **Paso 11** (los pasos 16–17 la consumen). Dueño: Steven |
+| **R1** La fantasma "según el texto" está mal definida (el contorno ideal no coincide con lo que Steven considera buena oratoria) | M | H | En la semana de línea base, Steven reporta que el fantasma "no se parece" a una buena entrega, o que `trackingPct` queda < 40 % con entregas que él considera buenas | Algoritmo determinista + marcas de Gemini como datos (§2); constantes de perfiles en un solo archivo (`profiles.ts`) para ajustar sin tocar el generador; validar con Steven en la línea base. **Paso 11** (los pasos 16 a 18 la consumen). Dueño: Steven |
 | **R2** STT puede omitir muletillas (no está documentado que las transcriba) | H | M | El spike M8 muestra una transcripción "limpia" donde Steven dijo "eh/este" | Spike manual M8; análisis de audio con Gemini detrás de `FILLERS_FROM_AUDIO` (por defecto `true`) y respuesta grabada en evals. **Pasos 14, 15 y 16** |
 | **R3** `long` puede no dar marcas de tiempo por palabra en streaming y Chirp 3 no las da | H | M | `pnpm spike:stt` no devuelve tiempos por palabra | Ritmo y pausas son locales (VAD + conteo de palabras); STT solo aporta transcripción final y `confidence` por enunciado; adaptador con modelo/región configurables. **Paso 14** (y 12 para el cálculo local) |
-| **R4** Gasto y vencimiento del crédito (90 días; las alertas tardan horas; los "spend caps" no cubren STT; el patrón de desactivar facturación es destructivo y no se usa) | M | H | Alerta de presupuesto al 50 %; `quota_exceeded` frecuente; se acerca el día 80 | Cuota diaria de segundos de STT por organización + tope de 270 s + `--max-instances 3` + alertas 50/80/100 % (M3) + métrica `cost_usd`; exportar datos y decidir antes del día 80 (M12, runbook `creditos-vencen`). **Pasos 14, 18 y 20**. Dueño: Steven |
-| **R5** Retención de audio: el lifecycle no garantiza el tiempo y el soft delete retiene 7 días | M | M | Objetos en `tmp/` con más de 25 h; el barredor devuelve `deleted > 0` de forma constante | Borrado inmediato por código tras el informe + barredor horario (OIDC) + lifecycle `age:1` de respaldo + soft delete 0 (M6). Garantía documentada: "borrado ≤ 24 h + intervalo del barredor (1 h) en condiciones normales". **Paso 15** (y 20) |
+| **R4** Gasto y vencimiento del crédito (90 días; las alertas tardan horas; los "spend caps" no cubren STT; el patrón de desactivar facturación es destructivo y no se usa) | M | H | Alerta de presupuesto al 50 %; `quota_exceeded` frecuente; se acerca el día 80 | Cuota diaria de segundos de STT por organización + tope de 270 s + `--max-instances 3` + alertas 50/80/100 % (M3) + métrica `cost_usd`; exportar datos y decidir antes del día 80 (M12, runbook `creditos-vencen`). **Pasos 14, 19 y 21**. Dueño: Steven |
+| **R5** Retención de audio: el lifecycle no garantiza el tiempo y el soft delete retiene 7 días | M | M | Objetos en `tmp/` con más de 25 h; el barredor devuelve `deleted > 0` de forma constante | Borrado inmediato por código tras el informe + barredor horario (OIDC) + lifecycle `age:1` de respaldo + soft delete 0 (M6). Garantía documentada: "borrado ≤ 24 h + intervalo del barredor (1 h) en condiciones normales". **Paso 15** (y 21) |
 | **R6** PWA en iOS: el micrófono (bug WebKit 215884: el permiso se pierde al cambiar el hash) y el sign-in de Google en PWA instalada no están documentados | M | H | M10 falla: el permiso se pide de nuevo o el sign-in no vuelve a la app | No cambiar de ruta ni de hash durante la captura; `authDomain` propio y redirect en iOS; prueba en iPhone real (M10); si falla, evaluar app nativa (no-objetivo con condición). **Pasos 6, 7, 8 y 10** |
 | **R7** Alcance grande para una sola persona | H | M | Un paso excede una sentada o acumula fallos de puerta | Cortes verticales, un paso por sentada, puertas por paso y 3 épicas con salida clara; los no-objetivos fijan el alcance |
 | **R8** Los datos de voz son datos personales sensibles al vender | L (hoy) | H | Se decide abrir el registro | v1 cerrada con `ALLOWED_EMAILS`; política de privacidad y consentimiento antes de abrir (no-objetivo con condición); audio efímero; exportar y borrar la cuenta |
-| **R9** Los `gemini-2.5-*` se retiran el 2026-10-20 y `@google/genai` está en "Preview" | M | M | Error de modelo no disponible o cambio de API tras actualizar el SDK | IDs solo en configuración (`GEMINI_MODEL`), un único módulo importa el SDK, evaluación en CI (`pnpm eval`) y en vivo (M9); el cliente se construye con opciones explícitas. **Pasos 16 y 20** |
+| **R9** Los `gemini-2.5-*` se retiran el 2026-10-20 y `@google/genai` está en "Preview" | M | M | Error de modelo no disponible o cambio de API tras actualizar el SDK | IDs solo en configuración (`GEMINI_MODEL`), un único módulo importa el SDK, evaluación en CI (`pnpm eval`) y en vivo (M9); el cliente se construye con opciones explícitas. **Pasos 16 y 21** |
 | **R10** Arranque en frío de Cloud Run en la primera conexión WebSocket | H | L | La primera conexión tarda varios segundos | El cliente tolera el retraso y muestra "Conectando…"; reconexión con retroceso; `--min-instances 0` por costo con la opción de `--min-instances 1` documentada. **Paso 14** |
 
 ### 20.3 Decision log

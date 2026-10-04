@@ -28,7 +28,7 @@ pnpm eval
 pnpm test:e2e
 pnpm test:e2e:full
 ```
-Cada línea debe terminar con exit 0. (`check-pwa`, `eval` y `check-bundle-budget` existen desde los pasos 7, 16 y 19: antes de esos pasos, omite las que aún no existen.)
+Cada línea debe terminar con exit 0. (`check-pwa`, `eval` y `check-bundle-budget` existen desde los pasos 7, 16 y 20: antes de esos pasos, omite las que aún no existen.)
 
 ## Do not
 - No ignorar advertencias: una advertencia tolerada se vuelve permanente.

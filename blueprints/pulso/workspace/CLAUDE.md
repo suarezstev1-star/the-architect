@@ -88,11 +88,11 @@ Tokens en `apps/web/src/styles/tokens.css`; los componentes usan solo nombres de
 
 ## Environment
 
-`.env.example` está commiteado y completo (valores locales del emulador). Copia a `.env`. El servidor solo exige una variable desde el paso que la consume.
+`.env.example` está commiteado y completo (valores locales del emulador). Bootstrap la copia a `.env` (Vite no lee `.env.example`). El servidor solo exige una variable desde el paso que la consume.
 
 | Variable | Requerida desde el paso | Usada por |
 |---|---|---|
-| `NODE_ENV`, `PORT`, `GIT_SHA`, `LOG_LEVEL` | 1 (con valor por defecto) | `src/index.ts`, `env.ts` |
+| `NODE_ENV`, `PORT`, `GIT_SHA`, `LOG_LEVEL` | 4 (antes: lectura directa con valor por defecto) | `src/index.ts`, `env.ts` |
 | `GOOGLE_CLOUD_PROJECT` | 4 | `firebase.ts` |
 | `ALLOWED_EMAILS`, `WEB_ORIGINS` | 5 | `auth/verify.ts`, CORS |
 | `STT_MODEL`, `STT_LOCATION`, `STT_LANGUAGE`, `STT_DAILY_SECONDS_PER_ORG`, `STT_PRICE_USD_PER_MIN` | 14 | `stt/`, `usage/quota.ts` |

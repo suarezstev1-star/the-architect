@@ -20,6 +20,8 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
+      filename: "sw.js",
+      manifestFilename: "manifest.webmanifest",
       includeAssets: ["icons/apple-touch-icon.png"],
       manifest: {
         name: "PULSO",

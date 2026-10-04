@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Epic id** | `03-coaching-y-lanzamiento` |
-| **Tasks** | `E3-T1` … `E3-T8` (8 tareas) |
+| **Tasks** | `E3-T1` … `E3-T9` (9 tareas) |
 | **Depends on** | `01-fundacion`, `02-nucleo-de-voz` |
 | **Unlocks** | nada (entrega) |
 | **Parallel with** | ninguna |
@@ -42,20 +42,22 @@ Solo lo que toca esta épica:
 
 ```
 packages/shared/src/
-  index.ts                # se edita (reexporta wire, llm-schemas, coaching/*)
+  index.ts                # se edita en cada paso (reexporta wire, llm-schemas, coaching/*)
   coaching/vocab.ts, challenge.ts, level.ts, baseline.ts   # NUEVO paso 13
   wire.ts                 # NUEVO paso 14: mensajes del WebSocket (zod)
   coaching/diction.ts     # NUEVO paso 15 · schemas/session.ts se edita (FinishSessionSchema)
   llm-schemas.ts          # NUEVO paso 16: GhostMarksSchema, FillersFromAudioSchema
   coaching/verdict.ts, repertoire.ts   # NUEVO paso 17
 apps/server/src/
-  env.ts, app.ts, index.ts   # se editan en los pasos 14, 15, 16 y 19 (variables nuevas, rutas montadas, dependencias)
+  env.ts                  # se edita en los pasos 14, 15 y 16 (variables nuevas)
+  app.ts                  # se edita en los pasos 14, 15, 16, 17, 19 y 20 (monta rutas y dependencias opcionales)
+  index.ts                # se edita en los pasos 14 y 16 (construye el adaptador STT y el transporte de Gemini)
   stt/adapter.ts, stt/google.ts, ws/audio-gateway.ts, usage/quota.ts   # NUEVO paso 14
-  routes/sessions.ts, storage/audio-store.ts, sessions/finalize.ts, storage/sweeper.ts, routes/internal.ts   # NUEVO paso 15 (finalize.ts se edita en 16 y 17)
+  routes/sessions.ts, storage/audio-store.ts, sessions/finalize.ts, storage/sweeper.ts, routes/internal.ts   # NUEVO paso 15 (finalize.ts se edita en los pasos 16 y 17)
   llm/gateway.ts, llm/features.ts, llm/prompts/*.md, routes/ghost.ts   # NUEVO paso 16
   routes/phrases.ts       # NUEVO paso 17
-  routes/vocab.ts, routes/baseline.ts, routes/account.ts   # NUEVO paso 18
-  rate-limit.ts           # NUEVO paso 19
+  routes/vocab.ts, routes/baseline.ts, routes/account.ts   # NUEVO paso 19
+  rate-limit.ts           # NUEVO paso 20
 apps/server/scripts/spike-stt.ts       # NUEVO paso 14 (manual)
 apps/server/evals/golden.json, baseline.json, run.ts   # NUEVO paso 16
 apps/server/tests/e2e-server.ts        # se edita en los pasos 14 y 16 (inyecta los dobles)
@@ -63,17 +65,17 @@ apps/server/tests/helpers/env.ts       # existe (paso 4): baseEnv() ya devuelve 
 apps/server/tests/doubles/recorded-stt-adapter.ts, emulator/*, fixtures/**   # SOLO pruebas
 apps/web/src/
   audio/useAudioSocket.ts              # NUEVO paso 14
-  session/useRecordingSession.ts       # NUEVO paso 17: grabar → sesión → métricas → finish → /sesiones/:id
-  components/Verdict.tsx               # NUEVO paso 17
-  routes/FrasePerfecta.tsx, Repertorio.tsx, Sesion.tsx   # NUEVO paso 17
-  routes/Vocabulario.tsx, Baseline.tsx, Inicio.tsx       # NUEVO paso 18
-  routes/Monitor.tsx, meters/Meters.tsx   # se editan en 17 (hook de grabación y medidor de Dicción)
-  routes/Ajustes.tsx, router.tsx, i18n/es.ts   # se editan en 17 y 18
-deploy/check-bundle-budget.mjs         # NUEVO paso 19
-deploy/*.sh, storage-lifecycle.json, RUNBOOK.md   # NUEVO paso 20
-.github/workflows/ci.yml               # NUEVO paso 20
-tests/repo/deploy-config.test.ts, ci-parity.test.ts, runbook.test.ts   # NUEVO paso 20
-tests/e2e/app/perfect-phrase.spec.ts (paso 17), baseline.spec.ts (paso 18), a11y.spec.ts (paso 19)
+  session/useRecordingSession.ts       # NUEVO paso 18: grabar → sesión → métricas → finish → /sesiones/:id
+  components/Verdict.tsx               # NUEVO paso 18
+  routes/FrasePerfecta.tsx, Repertorio.tsx, Sesion.tsx   # NUEVO paso 18
+  routes/Vocabulario.tsx, Baseline.tsx, Inicio.tsx       # NUEVO paso 19
+  routes/Monitor.tsx, meters/Meters.tsx   # se editan en el paso 18 (hook de grabación y medidor de Dicción)
+  routes/Ajustes.tsx      # se edita en el paso 19 · router.tsx y i18n/es.ts se editan en los pasos 18 y 19
+deploy/check-bundle-budget.mjs         # NUEVO paso 20
+deploy/*.sh, storage-lifecycle.json, RUNBOOK.md   # NUEVO paso 21
+.github/workflows/ci.yml               # NUEVO paso 21
+tests/repo/deploy-config.test.ts, ci-parity.test.ts, runbook.test.ts   # NUEVO paso 21
+tests/e2e/app/perfect-phrase.spec.ts (paso 18), baseline.spec.ts (paso 19), a11y.spec.ts (paso 20)
 ```
 
 Todo lo que quede fuera de este subárbol está fuera de alcance. Si una tarea parece exigir editar un archivo que no aparece, detente y repórtalo: el límite de la épica está mal.
@@ -105,7 +107,7 @@ Todo lo que quede fuera de este subárbol está fuera de alcance. Si una tarea p
 |---|---|---|
 | `SttAdapter` (`apps/server/src/stt/adapter.ts`) | `open({ language, onUtterance, onError }) → SttStream` | pruebas, spike |
 | `generateStructured` (`apps/server/src/llm/gateway.ts`) | único módulo que importa `@google/genai`; recibe `recordCall(row)` (Firestore en el servidor, memoria en `evals/run.ts`) | `features.ts`, evals |
-| `useRecordingSession` (`apps/web/src/session/useRecordingSession.ts`) | grabar → sesión → métricas → finish → `/sesiones/:id` | Monitor, FrasePerfecta, Baseline |
+| `useRecordingSession` (`apps/web/src/session/useRecordingSession.ts`, paso 18) | grabar → sesión → métricas → finish → `/sesiones/:id` | Monitor, FrasePerfecta, Baseline |
 | `finalizeSession` (`apps/server/src/sessions/finalize.ts`) | persistir → informe → `finally` borrar audio | rutas de sesiones |
 | `evaluateVerdict`, `computeLevel`, `baselinePlan`, `detectComodin` (`@pulso/shared`) | fórmulas puras | web y servidor |
 
@@ -216,9 +218,13 @@ Piezas:
 - `apps/server/tests/doubles/recorded-stt-adapter.ts` — doble **solo de pruebas**: lee un JSON de enunciados grabados y emite el enunciado `k` cuando se han escrito `threshold_k` bytes; cuenta los bytes recibidos y las llamadas a `open`. **Nunca se importa desde `src/`.** `tests/e2e-server.ts` lo inyecta.
 - `apps/server/tests/emulator/ws-gateway.test.ts` — arranca la app con `serve({ port: 0 })`, `injectWebSocket`, emuladores de Auth y Firestore y un cliente `ws`; cubre autenticación (sin token → 4401 a los 5 s con `authTimeoutMs` reducido a 200 ms en la prueba; token inválido → 4401; email fuera de la lista → 4403 y `open` no llamado), trama inválida → 4400, reenvío íntegro y en orden, tope de 270 s (envía 270 s de audio sin esperar → `limit` y cierre 1000), cuota → 4429 antes de abrir, registro de uso y `cost_usd = segundos/60 × STT_PRICE_USD_PER_MIN`.
 - `apps/web/src/audio/useAudioSocket.ts` — hook/clase: abre `VITE_WS_URL` (o `ws(s)://${location.host}/ws/audio` si vacío), envía `auth`, expone `estado: "conectando"|"listo"|"reconectando"|"fallo"|"cerrado"`, `enviar(pcm: Int16Array)` y `transcript`; si el socket cae mientras se graba reintenta con retroceso exponencial 500 ms, 1000 ms, 2000 ms (máx. 3 intentos) y pasa a `fallo`. Arranque en frío de Cloud Run: el estado `conectando` se muestra como "Conectando…". Prueba con temporizadores falsos y un `WebSocket` simulado.
+- `packages/shared/src/index.ts` (editar) — reexporta `wire`. Como el resto de `deps.*` posteriores a `sha`, `deps.stt` es opcional en `createApp` (sin él, `/ws/audio` cierra con 1011 y `{ type: "error", code: "upstream_unavailable" }`).
+
+**Una sola sentada:** el protocolo, el adaptador, la cuota y el cliente giran alrededor de un único contrato (`wire.ts` + `SttAdapter`); el doble de pruebas es un archivo.
 
 **Files**
 - `packages/shared/src/wire.ts` — nuevo o editado según el detalle anterior
+- `packages/shared/src/index.ts` — nuevo o editado según el detalle anterior
 - `apps/server/src/**` — nuevo o editado según el detalle anterior
 - `apps/server/tests/**` — nuevo o editado según el detalle anterior
 - `apps/web/src/audio/**` — nuevo o editado según el detalle anterior
@@ -272,10 +278,14 @@ Sesiones, métricas y retención de audio. El audio temporal existe solo para el
 - `apps/server/src/env.ts` (editar) — añade `STORAGE_BUCKET`, `SWEEP_AUDIENCE`, `SCHEDULER_SA_EMAIL`, `FILLERS_FROM_AUDIO` (boolean, por defecto `true`), obligatorias desde el paso 15 salvo la bandera. `google-auth-library` (11.1.0) ya está en `apps/server/package.json` desde el Bootstrap: no hay nada que instalar aquí.
 - `apps/server/src/sessions/finalize.ts` y `apps/server/src/app.ts` (editar `app.ts` para montar las rutas de sesiones y `/internal`; `finalize.ts` es nuevo en este paso).
 - Pruebas: `dictionScore` (vector fijo: confianza 0.8, ppm 20 por encima del rango, pausas en rango → 64.0 exacto; límites 0 y 100), `sessions.test.ts` y `sweeper.test.ts` en `apps/server/tests/emulator/` (Storage emulator: se sube un objeto, `sweepAudio(now)` no lo borra, `sweepAudio(now + 25 h)` sí), aislamiento (`orgId` ajeno → 404 sin escrituras), tamaño de documento (3000 puntos < 1 MiB), WAV subido decodificable a las muestras enviadas.
+- `packages/shared/src/index.ts` (editar) — reexporta `coaching/diction`. `deps.oidcVerifier` es opcional como el resto de `deps.*` posteriores a `sha` (sin él, `/internal/sweep-audio` responde 401).
+
+**Una sola sentada:** una canalización (crear → cerrar → borrar audio → barrer) con un módulo por eslabón y pruebas contra emuladores.
 
 **Files**
 - `packages/shared/src/coaching/diction.ts` — nuevo o editado según el detalle anterior
 - `packages/shared/src/schemas/session.ts` — nuevo o editado según el detalle anterior
+- `packages/shared/src/index.ts` — nuevo o editado según el detalle anterior
 - `apps/server/src/**` — nuevo o editado según el detalle anterior
 - `apps/server/tests/**` — nuevo o editado según el detalle anterior
 
@@ -327,9 +337,13 @@ Pasarela de Gemini: **un único módulo importa el SDK** (`apps/server/src/llm/g
 - Carga del entorno: `pnpm eval` (`tsx --env-file=.env.example`) ya trae todas las variables; `pnpm eval:live` y `pnpm spike:stt` usan el `.env` real (los importa `load-dotenv.ts`). Evaluación — `apps/server/evals/golden.json`: **al menos 20 casos** repartidos en `ghostMarks` (8), `sessionReport` (8), `fillersFromAudio` (4) y 2 casos de respuesta malformada que debe repararse; cada caso tiene los campos `id`, `feature`, `input`, `recorded` (la respuesta cruda grabada) y `expect` (propiedades estructurales que debe cumplir la salida). `apps/server/evals/run.ts` — modo `recorded` (por defecto, sin red: reproduce las respuestas grabadas a través del mismo `generateStructured` con un `LlmTransport` de reproducción) o `--live` (usa el transporte real; solo manual, `pnpm eval:live`). Imprime tasa de aciertos, costo y latencia p95, y sale con código 1 si la tasa cae por debajo de `apps/server/evals/baseline.json` (un objeto con el campo `passRate`, calculado en la primera ejecución limpia y commiteado). Honestidad: el modo `recorded` prueba el pipeline (esquemas, reparación, límites), no la calidad del modelo; la calidad se mide con `pnpm eval:live` en la puerta manual.
 - Pruebas (`apps/server/tests/emulator/llm-gateway.test.ts` por escribir `llm_calls`; el resto unitarias en `apps/server/src/llm/*.test.ts`): reparación (malformado → válido = 2 llamadas; malformado dos veces = 2 llamadas y `LlmError`), 429 reintenta y 400 no, fila `llm_calls`, `ghost` con fallo del modelo → `source: "heuristic"`, informe guardado y audio borrado, `evals.test.ts` (la función de puntuación devuelve fallo si se corrompe una respuesta grabada).
 - **Puertas de grep del paso**: ningún ID de modelo en el código y un único importador del SDK (ver Verify).
+- `packages/shared/src/index.ts` (editar) — reexporta `llm-schemas`. `deps.llm` es opcional como el resto de `deps.*` posteriores a `sha` (sin él, `POST …/ghost` usa las marcas heurísticas y `finalizeSession` no genera informe).
+
+**Una sola sentada:** un único módulo de pasarela con tres funciones del mismo patrón (esquema → llamada → validación → registro) y un conjunto de evaluación; los prompts son archivos de texto.
 
 **Files**
 - `packages/shared/src/llm-schemas.ts` — nuevo o editado según el detalle anterior
+- `packages/shared/src/index.ts` — nuevo o editado según el detalle anterior
 - `apps/server/src/**` — nuevo o editado según el detalle anterior
 - `apps/server/tests/**` — nuevo o editado según el detalle anterior
 - `apps/server/evals/**` — nuevo o editado según el detalle anterior
@@ -370,27 +384,27 @@ git ls-files --error-unmatch apps/server/evals/baseline.json   # expect: exit 0 
 
 Ejecuta ambos tras el último `Verify` en 0 y antes de la tarea siguiente. Si la siguiente sale mal: `git reset --hard step-16-gemini-gateway`.
 
-### `E3-T5` — Frase Perfecta, repertorio y mi mejor yo
+### `E3-T5` — Veredicto, repertorio de 10 frases y rutas de frases
 
-**Depends on:** `E3-T4`, `E2-T5` · **Priority:** p0 — metadato para recortes de alcance, no un orden de ejecución · **Checkpoint:** `step-17-perfect-phrase`
+**Depends on:** `E3-T4`, `E2-T5` · **Priority:** p0 — metadato para recortes de alcance, no un orden de ejecución · **Checkpoint:** `step-17-verdict-phrases`
 
-El usuario elige perfil y frase, la dice siguiendo el fantasma y recibe el veredicto exacto con el segundo y la palabra de la separación; el repertorio de 10 frases y el mejor intento quedan guardados.
+Existen el veredicto exacto de Frase Perfecta, el repertorio de 10 frases con su fantasma, las rutas de frases por organización y el guardado del mejor intento (mi mejor yo), todo en shared y servidor.
 
-Modo Frase Perfecta, repertorio de 10 frases y "mi mejor yo". El veredicto **"ORATORIA PERFECTA ✓"** solo existe si se cumplen las cuatro condiciones a la vez.
+Lado compartido y servidor del modo Frase Perfecta: veredicto exacto, repertorio de 10 frases, rutas de frases y "mi mejor yo". Sin pantallas: la interfaz y el flujo de grabación llegan en el paso 18. El veredicto **"ORATORIA PERFECTA ✓"** solo existe si se cumplen las cuatro condiciones a la vez.
 
 - `packages/shared/src/coaching/verdict.ts` — `evaluateVerdict({ trackingPct, diction, fillers, ppm, profileId, divergence }): { perfect: boolean; failedChecks: Array<"seguimiento"|"diccion"|"muletillas"|"ritmo">; divergence }` con `perfect` ⇔ `trackingPct ≥ 85 && diction ≥ 85 && fillers === 0 && ppm dentro del rango del perfil` (límites inclusivos: 85 exacto es perfecto, 84.99 no).
 - `packages/shared/src/coaching/repertoire.ts` — `REPERTOIRE_SEED`: **exactamente 10** frases de negocio en español neutro (cada una de 12 a 40 palabras, ids estables `frase-01`…`frase-10`, temas: ventas, seguros, propuesta de valor, cierre, objeciones, urgencia, legado/familia, confianza, llamada a la acción, presentación en evento). `normalizeContour(contour, targetLength)` re-muestrea en tiempo y deja el contorno en semitonos relativos; `ghostForPhrase(phrase, mode: "perfil" | "mi-mejor-yo")` devuelve el fantasma de plantilla y, en `mi-mejor-yo`, el `bestRunContour` guardado (si no existe, cae a la plantilla).
-- `apps/server/src/routes/phrases.ts` — bajo `/api/v1/orgs/:orgId/phrases`: `GET /` (si la organización no tiene frases, las siembra desde `REPERTOIRE_SEED` con marcas heurísticas y `seeded: true`), `POST /` (frase propia), `DELETE /:id`; en `finalizeSession`, si el veredicto de una sesión de modo `frase` es perfecto, guarda su contorno normalizado como `bestRunContour` de la frase.
-- `apps/web/src/routes/FrasePerfecta.tsx` — tres pasos con `<ol>` visible y foco gestionado: (1) elegir perfil y frase del repertorio (o escribir una; llama a `POST …/ghost` para las marcas), (2) decirla siguiendo el fantasma (monitor + fantasma + puntaje de seguimiento en vivo), (3) veredicto. `apps/web/src/routes/Repertorio.tsx` lista las 10 frases con una vista previa del fantasma. `apps/web/src/routes/Sesion.tsx` (reporte de sesión `/sesiones/:id`): métricas, `segundo N · palabra «X»` de la separación, corrección prioritaria, reemplazos de vocabulario y, si aplica, el sello. `apps/web/src/components/Verdict.tsx` muestra el sello **una sola vez**: texto exacto `ORATORIA PERFECTA ✓`, animación de 400 ms de un único pulso (`emil-design-eng` para la curva; desactivada con `prefers-reduced-motion`), y un `role="status"` con el mismo texto; si no es perfecto, lista cada condición fallida como texto.
-- `apps/web/src/session/useRecordingSession.ts` — **el flujo de grabación de sesiones, que ningún paso anterior construye**. `useRecordingSession({ profileId, mode, phraseId?, ghost? })` devuelve `{ estado, iniciar, detener, dictionLive }` y ejecuta, en este orden: (1) `POST /api/v1/orgs/:orgId/sessions` → `sessionId`; (2) abre `useAudioSocket` (paso 14) y envía como **primer mensaje** `auth` con `sessionId`; (3) reenvía cada trama de `MicCapture` como binario; (4) al detener envía `end` y espera `done` con los enunciados; (5) calcula las métricas del cliente con funciones puras de `@pulso/shared`: `computeRhythm` (VAD + palabras), `countFillers`, `trackingScore` (si hay fantasma), `computeGreenZone`/`classifyHz` para `greenZonePct`, `activeVocabPer100` y `detectComodin` (paso 13); (6) `POST …/sessions/:id/finish` con contorno, `referenceHz`, métricas, transcripción y enunciados; (7) navega a `/sesiones/:id`. Mientras graba, `dictionLive` = `dictionScore` (paso 15) calculado con la confianza media de los enunciados finales recibidos, el ppm y la razón de pausas actuales, y alimenta el medidor de **Dicción** de `Meters.tsx` (que hasta ahora mostraba "—"). `Monitor.tsx` ("Grabar") usa este mismo hook con `mode: "libre"` (la semana de línea base del paso 18 depende de ello) y `FrasePerfecta.tsx` con `mode: "frase"` o `"mi-mejor-yo"`. `useRecordingSession.test.ts` lo prueba con `MicCapture`, `WebSocket` y `apiFetch` simulados y verifica el orden de las llamadas.
-- Pruebas: `verdict.test.ts` (tabla: cada condición falla sola → no perfecto; límites 85 / 84.99; `fillers = 1` → no perfecto), `repertoire.test.ts` (10 frases, ids únicos, 12–40 palabras, `generateGhost` sin error para los 3 perfiles, `ghostForPhrase` con y sin mejor intento), `Verdict.test.tsx` (jsdom), `apps/server/tests/emulator/phrases.test.ts` (siembra idempotente, aislamiento por organización, `bestRunContour`), `tests/e2e/app/perfect-phrase.spec.ts` (con el STT grabado del servidor de pruebas y el micrófono falso: elegir "Tarima", cargar la frase 1, grabar 6 s, aterrizar en `/sesiones/:id` con veredicto **no** perfecto, segundo y palabra visibles; el documento existe vía `GET`).
+- `packages/shared/src/index.ts` (editar) — reexporta `coaching/verdict.ts` y `coaching/repertoire.ts`.
+- `apps/server/src/routes/phrases.ts` — bajo `/api/v1/orgs/:orgId/phrases`: `GET /` (si la organización no tiene frases, las siembra desde `REPERTOIRE_SEED` con marcas heurísticas y `seeded: true`; idempotente), `POST /` (frase propia), `DELETE /:id`, todas con el guardia de membresía (404 si la organización es ajena). `apps/server/src/app.ts` (editar) monta la ruta.
+- `apps/server/src/sessions/finalize.ts` (editar) — tras persistir, si el veredicto de una sesión de modo `frase` es perfecto, guarda su contorno normalizado (`normalizeContour`) como `bestRunContour` de la frase; si no es perfecto no toca la frase.
+- Pruebas: `verdict.test.ts` (tabla: cada condición falla sola → no perfecto; límites 85 / 84.99; `fillers = 1` → no perfecto; el resultado no perfecto conserva la `divergence`), `repertoire.test.ts` (10 frases, ids únicos, 12–40 palabras, `generateGhost` sin error para los 3 perfiles, `ghostForPhrase` con y sin mejor intento) y `apps/server/tests/emulator/phrases.test.ts` (siembra idempotente, alta y baja de frases propias, aislamiento por organización, `bestRunContour` guardado solo con veredicto perfecto).
 
 **Files**
-- `packages/shared/src/coaching/**` — nuevo o editado según el detalle anterior
+- `packages/shared/src/coaching/verdict.ts` — nuevo o editado según el detalle anterior
+- `packages/shared/src/coaching/repertoire.ts` — nuevo o editado según el detalle anterior
+- `packages/shared/src/index.ts` — nuevo o editado según el detalle anterior
 - `apps/server/src/**` — nuevo o editado según el detalle anterior
 - `apps/server/tests/emulator/phrases.test.ts` — nuevo o editado según el detalle anterior
-- `apps/web/src/**` — nuevo o editado según el detalle anterior
-- `tests/e2e/app/perfect-phrase.spec.ts` — nuevo o editado según el detalle anterior
 
 **Acceptance**
 
@@ -398,10 +412,8 @@ Copiado literalmente del arreglo `acceptance` de esta tarea en `tasks.json`. Cad
 
 1. **WHEN** `evaluateVerdict` runs **THE SYSTEM SHALL** return `perfect: true` only when tracking is at least 85, diction is at least 85, fillers equal 0 and ppm is inside the profile range, treating 85 as perfect and 84.99 as not perfect, each failing condition alone SHALL give `perfect: false` with that condition in `failedChecks`, and a not-perfect result SHALL carry the `divergence` second and word computed by `trackingScore`.
 2. **WHEN** `REPERTOIRE_SEED` is read **THE SYSTEM SHALL** contain exactly 10 phrases with unique ids, each of 12 to 40 words, and `generateGhost` SHALL produce a ghost for each of them in all three profiles without throwing.
-3. **WHEN** a Frase Perfecta session reaches a perfect verdict **THE SYSTEM SHALL** store its time-normalized, semitone-relative contour as `bestRunContour` of the phrase and `ghostForPhrase(phrase, 'mi-mejor-yo')` SHALL return it, and **WHEN** no best run exists **THE SYSTEM SHALL** fall back to the profile template.
-4. **WHEN** the `Verdict` component renders a perfect result **THE SYSTEM SHALL** show the text `ORATORIA PERFECTA ✓` exactly once with a `role="status"` announcement, and **WHEN** the result is not perfect **THE SYSTEM SHALL** list each failed check as text and `segundo N · palabra «X»` for the divergence.
-5. **WHEN** `useRecordingSession` runs with a simulated `MicCapture`, `WebSocket` and `apiFetch` **THE SYSTEM SHALL**, in this order, call `POST …/sessions`, send `auth` with the returned `sessionId` as the first socket message, forward every frame as binary, send `end`, call `POST …/sessions/:id/finish` with the metrics computed by `computeRhythm`, `countFillers`, `trackingScore`, `activeVocabPer100` and `detectComodin`, and navigate to `/sesiones/:id`, and the Dicción meter SHALL show `dictionScore` computed from the utterance confidences instead of a dash.
-6. **WHEN** `pnpm test:e2e:full tests/e2e/app/perfect-phrase.spec.ts` selects Tarima, loads phrase 1 and records the fake microphone for 6 s **THE SYSTEM SHALL** navigate to `/sesiones/:id` showing a not-perfect verdict with a divergence second and word, and the session document SHALL be readable through `GET /api/v1/orgs/:orgId/sessions/:id`.
+3. **WHEN** a Frase Perfecta session reaches a perfect verdict **THE SYSTEM SHALL** store its time-normalized, semitone-relative contour as `bestRunContour` of the phrase and `ghostForPhrase(phrase, 'mi-mejor-yo')` SHALL return it, and **WHEN** the verdict is not perfect or no best run exists **THE SYSTEM SHALL** leave the phrase unchanged and fall back to the profile template.
+4. **WHEN** `GET /api/v1/orgs/:orgId/phrases` runs for an org without phrases **THE SYSTEM SHALL** seed the 10 phrases of the repertoire and a second call SHALL leave exactly 10, `POST` and `DELETE` SHALL add and remove an own phrase, and **WHEN** the `orgId` belongs to another org **THE SYSTEM SHALL** answer 404 and write nothing.
 
 **Verify** — cada comando, en orden, desde la raíz del proyecto. Cada uno termina en 0 cuando la tarea es correcta; que el último termine en 0 es lo que da la tarea por hecha.
 
@@ -410,6 +422,54 @@ pnpm typecheck
 pnpm lint
 pnpm test:unit
 pnpm test:emu
+pnpm build
+node scripts/smoke-server.mjs
+```
+
+**Checkpoint**
+
+```bash
+git add -A && git commit -m "step 17: verdict-phrases"
+git tag step-17-verdict-phrases
+```
+
+Ejecuta ambos tras el último `Verify` en 0 y antes de la tarea siguiente. Si la siguiente sale mal: `git reset --hard step-17-verdict-phrases`.
+
+### `E3-T6` — Frase Perfecta en pantalla y flujo de grabación
+
+**Depends on:** `E3-T5` · **Priority:** p0 — metadato para recortes de alcance, no un orden de ejecución · **Checkpoint:** `step-18-perfect-phrase-ui`
+
+El usuario elige perfil y frase, la dice siguiendo el fantasma y recibe el veredicto con el segundo y la palabra de la separación; el flujo de grabación de sesiones y el medidor de Dicción quedan cableados.
+
+Interfaz del modo Frase Perfecta y el flujo de grabación de sesiones, que ningún paso anterior construye. Usa los motores del paso 13, el WebSocket del paso 14, las sesiones del paso 15, el informe del paso 16 y el veredicto y repertorio del paso 17.
+
+- `apps/web/src/session/useRecordingSession.ts` — **el flujo de grabación de sesiones, que ningún paso anterior construye**. `useRecordingSession({ profileId, mode, phraseId?, ghost? })` devuelve `{ estado, iniciar, detener, dictionLive }` y ejecuta, en este orden: (1) `POST /api/v1/orgs/:orgId/sessions` → `sessionId`; (2) abre `useAudioSocket` (paso 14) y envía como **primer mensaje** `auth` con `sessionId`; (3) reenvía cada trama de `MicCapture` como binario; (4) al detener envía `end` y espera `done` con los enunciados; (5) calcula las métricas del cliente con funciones puras de `@pulso/shared`: `computeRhythm` (VAD + palabras), `countFillers`, `trackingScore` (si hay fantasma), `computeGreenZone`/`classifyHz` para `greenZonePct`, `activeVocabPer100` y `detectComodin` (paso 13); (6) `POST …/sessions/:id/finish` con contorno, `referenceHz`, métricas, transcripción y enunciados; (7) navega a `/sesiones/:id`. Mientras graba, `dictionLive` = `dictionScore` (paso 15) calculado con la confianza media de los enunciados finales recibidos, el ppm y la razón de pausas actuales, y alimenta el medidor de **Dicción** de `Meters.tsx` (que hasta ahora mostraba "—"). `Monitor.tsx` ("Grabar") usa este mismo hook con `mode: "libre"` (la semana de línea base del paso 19 depende de ello) y `FrasePerfecta.tsx` con `mode: "frase"` o `"mi-mejor-yo"`. `useRecordingSession.test.ts` lo prueba con `MicCapture`, `WebSocket` y `apiFetch` simulados y verifica el orden de las llamadas.
+- `apps/web/src/routes/FrasePerfecta.tsx` — tres pasos con `<ol>` visible y foco gestionado: (1) elegir perfil y frase del repertorio (o escribir una; llama a `POST …/ghost` para las marcas), (2) decirla siguiendo el fantasma (monitor + fantasma + puntaje de seguimiento en vivo), (3) veredicto.
+- `apps/web/src/components/Verdict.tsx` — el sello se muestra **una sola vez**: texto exacto `ORATORIA PERFECTA ✓`, animación de 400 ms de un único pulso (`emil-design-eng` para la curva; desactivada con `prefers-reduced-motion`) y un `role="status"` con el mismo texto; si no es perfecto, lista cada condición fallida como texto. `apps/web/src/routes/Sesion.tsx` (reporte `/sesiones/:id`) muestra métricas, `segundo N · palabra «X»` de la separación, corrección prioritaria, reemplazos de vocabulario y el sello. `apps/web/src/routes/Repertorio.tsx` lista las 10 frases con una vista previa del fantasma. Textos nuevos en `i18n/es.ts`.
+- Pruebas: `useRecordingSession.test.ts` (orden de las llamadas con dobles de `MicCapture`, `WebSocket` y `apiFetch`), `Verdict.test.tsx` y `FrasePerfecta.test.tsx` (jsdom: los tres pasos en un `<ol>`, foco gestionado) y `tests/e2e/app/perfect-phrase.spec.ts` (con el STT grabado del servidor de pruebas y el micrófono falso: elegir "Tarima", cargar la frase 1, grabar 6 s, aterrizar en `/sesiones/:id` con veredicto **no** perfecto, segundo y palabra visibles; el documento existe vía `GET`).
+
+**Files**
+- `apps/web/src/session/**` — nuevo o editado según el detalle anterior
+- `apps/web/src/routes/**` — nuevo o editado según el detalle anterior
+- `apps/web/src/components/Verdict.tsx` — nuevo o editado según el detalle anterior
+- `apps/web/src/meters/Meters.tsx` — nuevo o editado según el detalle anterior
+- `tests/e2e/app/perfect-phrase.spec.ts` — nuevo o editado según el detalle anterior
+
+**Acceptance**
+
+Copiado literalmente del arreglo `acceptance` de esta tarea en `tasks.json`. Cada criterio lo decide un comando de abajo, en esta máquina, durante la build.
+
+1. **WHEN** the `Verdict` component renders a perfect result **THE SYSTEM SHALL** show the text `ORATORIA PERFECTA ✓` exactly once with a `role="status"` announcement, and **WHEN** the result is not perfect **THE SYSTEM SHALL** list each failed check as text and `segundo N · palabra «X»` for the divergence.
+2. **WHEN** `useRecordingSession` runs with a simulated `MicCapture`, `WebSocket` and `apiFetch` **THE SYSTEM SHALL**, in this order, call `POST …/sessions`, send `auth` with the returned `sessionId` as the first socket message, forward every frame as binary, send `end`, call `POST …/sessions/:id/finish` with the metrics computed by `computeRhythm`, `countFillers`, `trackingScore`, `activeVocabPer100` and `detectComodin`, and navigate to `/sesiones/:id`, and the Dicción meter SHALL show `dictionScore` computed from the utterance confidences instead of a dash.
+3. **WHEN** `FrasePerfecta` renders in jsdom **THE SYSTEM SHALL** show the three steps in an ordered list, move focus to the heading of the active step when it changes, and offer the 10 phrases of the repertoire in step 1.
+4. **WHEN** `pnpm test:e2e:full tests/e2e/app/perfect-phrase.spec.ts` selects Tarima, loads phrase 1 and records the fake microphone for 6 s **THE SYSTEM SHALL** navigate to `/sesiones/:id` showing a not-perfect verdict with a divergence second and word, and the session document SHALL be readable through `GET /api/v1/orgs/:orgId/sessions/:id`.
+
+**Verify** — cada comando, en orden, desde la raíz del proyecto. Cada uno termina en 0 cuando la tarea es correcta; que el último termine en 0 es lo que da la tarea por hecha.
+
+```bash
+pnpm typecheck
+pnpm lint
+pnpm test:unit
 node scripts/check-no-hex.mjs
 pnpm build
 pnpm test:e2e:full tests/e2e/app/perfect-phrase.spec.ts
@@ -418,19 +478,19 @@ pnpm test:e2e:full tests/e2e/app/perfect-phrase.spec.ts
 **Checkpoint**
 
 ```bash
-git add -A && git commit -m "step 17: perfect-phrase"
-git tag step-17-perfect-phrase
+git add -A && git commit -m "step 18: perfect-phrase-ui"
+git tag step-18-perfect-phrase-ui
 ```
 
-Ejecuta ambos tras el último `Verify` en 0 y antes de la tarea siguiente. Si la siguiente sale mal: `git reset --hard step-17-perfect-phrase`.
+Ejecuta ambos tras el último `Verify` en 0 y antes de la tarea siguiente. Si la siguiente sale mal: `git reset --hard step-18-perfect-phrase-ui`.
 
-### `E3-T6` — Rutas y pantallas del coaching; exportar y borrar cuenta
+### `E3-T7` — Rutas y pantallas del coaching; exportar y borrar cuenta
 
-**Depends on:** `E3-T5` · **Priority:** p0 — metadato para recortes de alcance, no un orden de ejecución · **Checkpoint:** `step-18-coaching-routes-web`
+**Depends on:** `E3-T6` · **Priority:** p0 — metadato para recortes de alcance, no un orden de ejecución · **Checkpoint:** `step-19-coaching-routes-web`
 
 El usuario ve su vocabulario, su reto semanal, su línea base y su nivel en pantalla, guarda su diccionario y su ficha vocal, y puede exportar o borrar todos sus datos.
 
-Rutas del servidor y pantallas de web del coaching: diccionario personal, reto semanal, línea base con ficha vocal, Inicio, y exportar/borrar la cuenta. Los motores puros ya existen (paso 13) y el flujo de grabación (paso 17); aquí solo se conectan.
+Rutas del servidor y pantallas de web del coaching: diccionario personal, reto semanal, línea base con ficha vocal, Inicio, y exportar/borrar la cuenta. Los motores puros ya existen (paso 13) y el flujo de grabación (paso 18); aquí solo se conectan.
 
 - `apps/server/src/routes/vocab.ts` — `GET/PUT /api/v1/orgs/:orgId/vocab` (diccionario personal) y `GET/PUT …/challenge` (reto semanal, clave `isoWeekKey(new Date())`).
 - `apps/server/src/routes/baseline.ts` — `PUT …/voice-sheet/:profileId` y `POST …/baseline/complete` (construye las fichas con `buildVoiceSheet`).
@@ -470,15 +530,15 @@ pnpm test:e2e:full tests/e2e/app/baseline.spec.ts
 **Checkpoint**
 
 ```bash
-git add -A && git commit -m "step 18: coaching-routes-web"
-git tag step-18-coaching-routes-web
+git add -A && git commit -m "step 19: coaching-routes-web"
+git tag step-19-coaching-routes-web
 ```
 
-Ejecuta ambos tras el último `Verify` en 0 y antes de la tarea siguiente. Si la siguiente sale mal: `git reset --hard step-18-coaching-routes-web`.
+Ejecuta ambos tras el último `Verify` en 0 y antes de la tarea siguiente. Si la siguiente sale mal: `git reset --hard step-19-coaching-routes-web`.
 
-### `E3-T7` — Límites de tasa, presupuesto de bundle y pasada a11y
+### `E3-T8` — Límites de tasa, presupuesto de bundle y pasada a11y
 
-**Depends on:** `E3-T6` · **Priority:** p0 — metadato para recortes de alcance, no un orden de ejecución · **Checkpoint:** `step-19-hardening-quality`
+**Depends on:** `E3-T7` · **Priority:** p0 — metadato para recortes de alcance, no un orden de ejecución · **Checkpoint:** `step-20-hardening-quality`
 
 El servidor limita la tasa de solicitudes, el bundle tiene una guarda de tamaño y todas las rutas autenticadas pasan axe y el recorrido de teclado en ambos temas.
 
@@ -519,24 +579,24 @@ pnpm test:e2e:full tests/e2e/app/a11y.spec.ts
 **Checkpoint**
 
 ```bash
-git add -A && git commit -m "step 19: hardening-quality"
-git tag step-19-hardening-quality
+git add -A && git commit -m "step 20: hardening-quality"
+git tag step-20-hardening-quality
 git ls-files --error-unmatch deploy/check-bundle-budget.mjs   # expect: exit 0 — ya commiteado
 ```
 
-Ejecuta ambos tras el último `Verify` en 0 y antes de la tarea siguiente. Si la siguiente sale mal: `git reset --hard step-19-hardening-quality`.
+Ejecuta ambos tras el último `Verify` en 0 y antes de la tarea siguiente. Si la siguiente sale mal: `git reset --hard step-20-hardening-quality`.
 
-### `E3-T8` — Scripts de entrega, runbook y CI
+### `E3-T9` — Scripts de entrega, runbook y CI
 
-**Depends on:** `E3-T7` · **Priority:** p0 — metadato para recortes de alcance, no un orden de ejecución · **Checkpoint:** `step-20-delivery-ci`
+**Depends on:** `E3-T8` · **Priority:** p0 — metadato para recortes de alcance, no un orden de ejecución · **Checkpoint:** `step-21-delivery-ci`
 
 Existen los scripts de despliegue y alertas validados localmente, el runbook, el CI idéntico a la puerta final y las pruebas estáticas que fijan los valores compartidos; la entrega real queda como puertas manuales con dueño.
 
 Entrega: scripts de despliegue y alertas validados localmente, runbook, CI idéntico a la puerta final y las pruebas estáticas que fijan los valores compartidos. **El despliegue real, las alertas de presupuesto, el spike de STT, el iPhone y el lector de pantalla son puertas manuales con dueño** (§20.1), no pasos de la build. Todos los scripts usan `set -euo pipefail`, comprueban sus variables obligatorias y **ninguno se ejecuta en la build**.
 
-El directorio `deploy/` que posee este paso (seis archivos, además de `check-bundle-budget.mjs` del paso 19):
+El directorio `deploy/` que posee este paso (siete archivos: cinco `.sh`, `storage-lifecycle.json` y `RUNBOOK.md`; `check-bundle-budget.mjs` es del paso 20):
 - `deploy/deploy-server.sh` — `gcloud run deploy pulso-server --source . --region us-central1 --allow-unauthenticated --min-instances 0 --max-instances 3 --timeout 600 --set-env-vars …` (`--min-instances 1` queda documentado en comentarios como opción de pago contra el arranque en frío).
-- `deploy/deploy-web.sh` — `pnpm build && pnpm exec firebase deploy --only hosting,firestore:rules,firestore:indexes,storage`.
+- `deploy/deploy-web.sh` — exige que exista `.env.production.local` con los `VITE_*` reales (Vite lo prioriza sobre `.env`, que trae los valores del emulador; ambos están en `.gitignore`), y luego `pnpm build && pnpm exec firebase deploy --only hosting,firestore:rules,firestore:indexes,storage`.
 - `deploy/storage-setup.sh` — crea el bucket en `us-central1`, `gcloud storage buckets update gs://$BUCKET --soft-delete-duration=0` y aplica `deploy/storage-lifecycle.json`.
 - `deploy/scheduler.sh` — crea el job de Cloud Scheduler **llamado `pulso-sweep-audio`**, cada hora → `POST $SERVER_URL/internal/sweep-audio` con token OIDC de la cuenta de servicio.
 - `deploy/budget-alerts.sh` — `gcloud billing budgets create` con umbrales 0.5, 0.8 y 1.0.
@@ -544,9 +604,11 @@ El directorio `deploy/` que posee este paso (seis archivos, además de `check-bu
 - `deploy/RUNBOOK.md` — secciones `stt-cuota-agotada`, `error-rate-5xx` y `creditos-vencen`, cada una con al menos un bloque de comandos; el procedimiento "exportar mis datos y decidir migrar/mejorar antes del día 80"; y la lista de puertas manuales.
 
 Además:
-- `.github/workflows/ci.yml` — Node desde `.nvmrc`, pnpm 11.28.2 vía corepack, `pnpm install --frozen-lockfile`, instalación de Chromium y JDK 21, y las mismas órdenes de la puerta automática de §20.1 en el mismo orden (incluidos `pnpm eval` y ambos e2e).
+- `.github/workflows/ci.yml` — Node desde `.nvmrc`, pnpm 11.28.2 vía corepack, `pnpm install --frozen-lockfile`, instalación de Chromium (`pnpm exec playwright install --with-deps chromium`: el ejecutor de CI tiene `sudo` sin contraseña) y JDK 21, un paso `test -f .env || cp .env.example .env` **antes de `pnpm build`** (el build de producción lee los `VITE_*` de `.env`), y las mismas órdenes de la puerta automática de §20.1 en el mismo orden (incluidos `pnpm eval` y ambos e2e).
 - `tests/repo/deploy-config.test.ts` — ejecuta `bash -n` sobre cada `deploy/*.sh`; afirma el JSON del lifecycle, los umbrales 0.5/0.8/1.0, `--soft-delete-duration=0`, la región `us-central1`, que `deploy-server.sh` contiene `--max-instances 3`, `--min-instances 0` y `--timeout 600`, que `scheduler.sh` contiene `pulso-sweep-audio`, que el `CMD` del `Dockerfile` coincide con `main` y `scripts.start` de `apps/server/package.json` y que la etiqueta de Node del `Dockerfile` empieza por el mayor de `.nvmrc`.
-- `tests/repo/ci-parity.test.ts` — lee `blueprints/pulso/blueprint.md`, toma el PRIMER bloque ```bash bajo el encabezado `### 20.1`, elimina el comentario final desde ` #` en cada línea y descarta las líneas vacías, y exige que `.github/workflows/ci.yml` contenga cada comando, en el mismo orden, y que lea la versión de Node con `node-version-file: .nvmrc`. `tests/repo/runbook.test.ts` — exige las tres secciones del runbook, cada una con un bloque de comandos.
+- `tests/repo/ci-parity.test.ts` — lee `blueprints/pulso/blueprint.md`, toma el PRIMER bloque ```bash bajo el encabezado `### 20.1`, elimina el comentario final desde ` #` en cada línea y descarta las líneas vacías, y exige que `.github/workflows/ci.yml` contenga cada comando como subsecuencia ordenada (el CI puede tener pasos adicionales: instalar JDK y Chromium, crear `.env`) y que lea la versión de Node con `node-version-file: .nvmrc`. `tests/repo/runbook.test.ts` — exige las tres secciones del runbook, cada una con un bloque de comandos.
+
+**Una sola sentada:** son archivos de texto planos sin lógica (cinco scripts de shell cortos, un JSON, un runbook, un workflow) y tres pruebas estáticas de lectura de archivos.
 
 **Files**
 - `deploy/*.sh` — nuevo o editado según el detalle anterior
@@ -560,7 +622,7 @@ Además:
 Copiado literalmente del arreglo `acceptance` de esta tarea en `tasks.json`. Cada criterio lo decide un comando de abajo, en esta máquina, durante la build.
 
 1. **WHEN** `pnpm test:unit tests/repo/deploy-config.test.ts` runs **THE SYSTEM SHALL** assert that `bash -n` exits 0 for every `deploy/*.sh`, that `deploy/storage-lifecycle.json` has a Delete rule with age 1 and prefix `tmp/`, that `deploy/budget-alerts.sh` sets thresholds 0.5, 0.8 and 1.0, that `deploy/storage-setup.sh` contains `--soft-delete-duration=0`, that the deploy scripts use region `us-central1`, that `deploy/deploy-server.sh` contains `--max-instances 3`, `--min-instances 0` and `--timeout 600`, that `deploy/scheduler.sh` names the job `pulso-sweep-audio`, and that the `CMD` of the `Dockerfile` equals `main` and `scripts.start` of `apps/server/package.json` (`dist/index.js`).
-2. **WHEN** `pnpm test:unit tests/repo/ci-parity.test.ts` runs **THE SYSTEM SHALL** assert that `.github/workflows/ci.yml` runs every command of the automated global gate in the same order, reads the Node version from `.nvmrc` and runs `pnpm eval`.
+2. **WHEN** `pnpm test:unit tests/repo/ci-parity.test.ts` runs **THE SYSTEM SHALL** assert that `.github/workflows/ci.yml` runs every command of the automated global gate as an ordered subsequence (extra setup steps are allowed, among them the installation of JDK and Chromium and `test -f .env || cp .env.example .env` before `pnpm build`, which it SHALL contain), reads the Node version from `.nvmrc` and runs `pnpm eval`.
 3. **WHEN** `pnpm test:unit tests/repo/runbook.test.ts` runs **THE SYSTEM SHALL** find in `deploy/RUNBOOK.md` the sections `stt-cuota-agotada`, `error-rate-5xx` and `creditos-vencen`, each with at least one fenced command block.
 4. **WHEN** the automated global gate runs in the order of the blueprint **THE SYSTEM SHALL** exit 0 on every command, from `pnpm install --frozen-lockfile` to `pnpm test:e2e:full`.
 
@@ -584,13 +646,13 @@ pnpm test:e2e:full
 **Checkpoint**
 
 ```bash
-git add -A && git commit -m "step 20: delivery-ci"
-git tag step-20-delivery-ci
+git add -A && git commit -m "step 21: delivery-ci"
+git tag step-21-delivery-ci
 git ls-files --error-unmatch .github/workflows/ci.yml   # expect: exit 0 — ya commiteado
 git ls-files --error-unmatch deploy/storage-lifecycle.json   # expect: exit 0 — ya commiteado
 ```
 
-Ejecuta ambos tras el último `Verify` en 0 y antes de la tarea siguiente. Si la siguiente sale mal: `git reset --hard step-20-delivery-ci`.
+Ejecuta ambos tras el último `Verify` en 0 y antes de la tarea siguiente. Si la siguiente sale mal: `git reset --hard step-21-delivery-ci`.
 
 ---
 
