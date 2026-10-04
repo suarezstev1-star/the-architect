@@ -51,16 +51,17 @@ packages/shared/src/
 apps/server/src/
   env.ts                  # se edita en los pasos 14, 15 y 16 (variables nuevas)
   app.ts                  # se edita en los pasos 14, 15, 16, 17, 19 y 20 (monta rutas y dependencias opcionales)
-  index.ts                # se edita en los pasos 14 y 16 (construye el adaptador STT y el transporte de Gemini)
+  index.ts                # se edita en los pasos 14, 16 y 20 (construye el adaptador STT, el transporte de Gemini y los topes del limitador)
   stt/adapter.ts, stt/google.ts, ws/audio-gateway.ts, usage/quota.ts   # NUEVO paso 14
+  auth/org-guard.ts       # NUEVO paso 15: requireOrgMember (404 si no es miembro; lo reutilizan los pasos 17 y 19)
   routes/sessions.ts, storage/audio-store.ts, sessions/finalize.ts, storage/sweeper.ts, routes/internal.ts   # NUEVO paso 15 (finalize.ts se edita en los pasos 16 y 17)
   llm/gateway.ts, llm/features.ts, llm/prompts/*.md, routes/ghost.ts   # NUEVO paso 16
   routes/phrases.ts       # NUEVO paso 17
   routes/vocab.ts, routes/baseline.ts, routes/account.ts   # NUEVO paso 19
-  rate-limit.ts           # NUEVO paso 20
+  rate-limit.ts           # NUEVO paso 20 (app.ts, index.ts y tests/e2e-server.ts reciben deps.rateLimit)
 apps/server/scripts/spike-stt.ts       # NUEVO paso 14 (manual)
 apps/server/evals/golden.json, baseline.json, run.ts   # NUEVO paso 16
-apps/server/tests/e2e-server.ts        # se edita en los pasos 14 y 16 (inyecta los dobles)
+apps/server/tests/e2e-server.ts        # se edita en los pasos 14, 16 y 20 (inyecta los dobles y los topes del limitador, 10000)
 apps/server/tests/helpers/env.ts       # existe (paso 4): baseEnv() ya devuelve las claves nuevas de .env.example
 apps/server/tests/doubles/recorded-stt-adapter.ts, emulator/*, fixtures/**   # SOLO pruebas
 apps/web/src/
@@ -70,7 +71,7 @@ apps/web/src/
   routes/FrasePerfecta.tsx, Repertorio.tsx, Sesion.tsx   # NUEVO paso 18
   routes/Vocabulario.tsx, Baseline.tsx, Inicio.tsx       # NUEVO paso 19
   routes/Monitor.tsx, meters/Meters.tsx   # se editan en el paso 18 (hook de grabación y medidor de Dicción)
-  routes/Ajustes.tsx      # se edita en el paso 19 · router.tsx y i18n/es.ts se editan en los pasos 18 y 19
+  routes/Ajustes.tsx      # se edita en el paso 19 · i18n/es.ts se edita en los pasos 18 y 19 · router.tsx NO se edita (los pasos 18 y 19 reescriben los marcadores del paso 7)
 deploy/check-bundle-budget.mjs         # NUEVO paso 20
 deploy/*.sh, storage-lifecycle.json, RUNBOOK.md   # NUEVO paso 21
 .github/workflows/ci.yml               # NUEVO paso 21
@@ -223,10 +224,10 @@ Piezas:
 **Una sola sentada:** el protocolo, el adaptador, la cuota y el cliente giran alrededor de un único contrato (`wire.ts` + `SttAdapter`); el doble de pruebas es un archivo.
 
 **Files**
-- `packages/shared/src/wire.ts` — nuevo o editado según el detalle anterior
-- `packages/shared/src/index.ts` — nuevo o editado según el detalle anterior
+- `packages/shared/src/*.ts` — nuevo o editado según el detalle anterior
 - `apps/server/src/**` — nuevo o editado según el detalle anterior
 - `apps/server/tests/**` — nuevo o editado según el detalle anterior
+- `apps/server/scripts/spike-stt.ts` — nuevo o editado según el detalle anterior
 - `apps/web/src/audio/**` — nuevo o editado según el detalle anterior
 
 **Acceptance**
@@ -270,7 +271,8 @@ Sesiones, métricas y retención de audio. El audio temporal existe solo para el
 
 - `packages/shared/src/coaching/diction.ts` — `dictionScore({ confidence, ppm, pauseRatio, profileId }): number` = `100 × (0.55 × confidence + 0.25 × rhythmFactor + 0.20 × pauseFactor)`, con `confidence ∈ [0,1]` (media de la confianza por enunciado ponderada por palabras), `rhythmFactor = 1` si `ppm` está en el rango del perfil y `max(0, 1 − dist/20)` con `dist` = ppm de distancia al límite más cercano; `pauseFactor = 1` si `pauseRatio` está en el rango del perfil y `max(0, 1 − dist/0.15)` si no; resultado acotado a [0,100] y redondeado a 1 decimal. Es un **proxy**, no análisis fonético clínico (límite honesto del producto).
 - `packages/shared/src/schemas/session.ts` (editar) — `FinishSessionSchema`: `{ contour: number[] (≤ 3000), referenceHz, metrics, transcript, utterances }`; `contour` se guarda como enteros (`round(semitonos × 10)`).
-- `apps/server/src/routes/sessions.ts` — todas bajo `/api/v1/orgs/:orgId/sessions`, con el guardia `requireOrgMember` (404 —no 403— si el usuario no es miembro): `POST /` crea `sessions/{id}` con `state: "recording"`; `POST /:id/finish` valida con `FinishSessionSchema`, calcula `dictionScore`, guarda `contour` compacto, `metrics`, `state: "done"`, `endedAt`, y llama a `finalizeSession` (ver abajo); `GET /:id`; `DELETE /:id` (borrado duro del documento, de `reports/{id}` y del audio).
+- `apps/server/src/auth/org-guard.ts` — `requireOrgMember` middleware: lee `:orgId`, comprueba `orgs/{orgId}/members/{uid}` vía `createOrgStore`, responde 404 `not_found` si no existe y deja `store` en el contexto. Lo reutilizan las rutas de sesiones, de frases (paso 17) y del coaching (paso 19).
+- `apps/server/src/routes/sessions.ts` — todas bajo `/api/v1/orgs/:orgId/sessions`, con `requireOrgMember` (404 —no 403— si el usuario no es miembro): `POST /` crea `sessions/{id}` con `state: "recording"`; `POST /:id/finish` valida con `FinishSessionSchema`, calcula `dictionScore`, guarda `contour` compacto, `metrics`, `state: "done"`, `endedAt`, y llama a `finalizeSession` (ver abajo); `GET /:id`; `DELETE /:id` (borrado duro del documento, de `reports/{id}` y del audio).
 - `apps/server/src/storage/audio-store.ts` — único módulo que importa `@google-cloud/storage`/`firebase-admin/storage`: `saveSessionAudio(orgId, sessionId, pcm: Uint8Array)` escribe `tmp/{orgId}/{sessionId}.wav` (con `encodeWavPcm16`), `deleteSessionAudio(orgId, sessionId)` (idempotente), `listTmpObjects()`. La pasarela del paso 14 acumula el PCM de la sesión en memoria (máx. 270 s × 32 000 B = 8.64 MB) y, si `FILLERS_FROM_AUDIO` es `true`, lo guarda al terminar el stream.
 - `apps/server/src/sessions/finalize.ts` — `finalizeSession(deps, orgId, sessionId)`: persistencia → (hueco del paso 16: informe) → `finally { deleteSessionAudio }`. El borrado ocurre **siempre**, exista o no el objeto, falle o no el informe.
 - `apps/server/src/storage/sweeper.ts` — `sweepAudio(now = Date.now())` borra todo objeto de `tmp/` con antigüedad > 24 h y devuelve `{ deleted }`; la hora se inyecta para poder probarlo.
@@ -395,13 +397,12 @@ Lado compartido y servidor del modo Frase Perfecta: veredicto exacto, repertorio
 - `packages/shared/src/coaching/verdict.ts` — `evaluateVerdict({ trackingPct, diction, fillers, ppm, profileId, divergence }): { perfect: boolean; failedChecks: Array<"seguimiento"|"diccion"|"muletillas"|"ritmo">; divergence }` con `perfect` ⇔ `trackingPct ≥ 85 && diction ≥ 85 && fillers === 0 && ppm dentro del rango del perfil` (límites inclusivos: 85 exacto es perfecto, 84.99 no).
 - `packages/shared/src/coaching/repertoire.ts` — `REPERTOIRE_SEED`: **exactamente 10** frases de negocio en español neutro (cada una de 12 a 40 palabras, ids estables `frase-01`…`frase-10`, temas: ventas, seguros, propuesta de valor, cierre, objeciones, urgencia, legado/familia, confianza, llamada a la acción, presentación en evento). `normalizeContour(contour, targetLength)` re-muestrea en tiempo y deja el contorno en semitonos relativos; `ghostForPhrase(phrase, mode: "perfil" | "mi-mejor-yo")` devuelve el fantasma de plantilla y, en `mi-mejor-yo`, el `bestRunContour` guardado (si no existe, cae a la plantilla).
 - `packages/shared/src/index.ts` (editar) — reexporta `coaching/verdict.ts` y `coaching/repertoire.ts`.
-- `apps/server/src/routes/phrases.ts` — bajo `/api/v1/orgs/:orgId/phrases`: `GET /` (si la organización no tiene frases, las siembra desde `REPERTOIRE_SEED` con marcas heurísticas y `seeded: true`; idempotente), `POST /` (frase propia), `DELETE /:id`, todas con el guardia de membresía (404 si la organización es ajena). `apps/server/src/app.ts` (editar) monta la ruta.
+- `apps/server/src/routes/phrases.ts` — bajo `/api/v1/orgs/:orgId/phrases`: `GET /` (si la organización no tiene frases, las siembra desde `REPERTOIRE_SEED` con marcas heurísticas y `seeded: true`; idempotente), `POST /` (frase propia), `DELETE /:id`, todas con `requireOrgMember` (paso 15, `auth/org-guard.ts`; 404 si la organización es ajena). `apps/server/src/app.ts` (editar) monta la ruta.
 - `apps/server/src/sessions/finalize.ts` (editar) — tras persistir, si el veredicto de una sesión de modo `frase` es perfecto, guarda su contorno normalizado (`normalizeContour`) como `bestRunContour` de la frase; si no es perfecto no toca la frase.
 - Pruebas: `verdict.test.ts` (tabla: cada condición falla sola → no perfecto; límites 85 / 84.99; `fillers = 1` → no perfecto; el resultado no perfecto conserva la `divergence`), `repertoire.test.ts` (10 frases, ids únicos, 12–40 palabras, `generateGhost` sin error para los 3 perfiles, `ghostForPhrase` con y sin mejor intento) y `apps/server/tests/emulator/phrases.test.ts` (siembra idempotente, alta y baja de frases propias, aislamiento por organización, `bestRunContour` guardado solo con veredicto perfecto).
 
 **Files**
-- `packages/shared/src/coaching/verdict.ts` — nuevo o editado según el detalle anterior
-- `packages/shared/src/coaching/repertoire.ts` — nuevo o editado según el detalle anterior
+- `packages/shared/src/coaching/**` — nuevo o editado según el detalle anterior
 - `packages/shared/src/index.ts` — nuevo o editado según el detalle anterior
 - `apps/server/src/**` — nuevo o editado según el detalle anterior
 - `apps/server/tests/emulator/phrases.test.ts` — nuevo o editado según el detalle anterior
@@ -445,14 +446,11 @@ Interfaz del modo Frase Perfecta y el flujo de grabación de sesiones, que ning�
 
 - `apps/web/src/session/useRecordingSession.ts` — **el flujo de grabación de sesiones, que ningún paso anterior construye**. `useRecordingSession({ profileId, mode, phraseId?, ghost? })` devuelve `{ estado, iniciar, detener, dictionLive }` y ejecuta, en este orden: (1) `POST /api/v1/orgs/:orgId/sessions` → `sessionId`; (2) abre `useAudioSocket` (paso 14) y envía como **primer mensaje** `auth` con `sessionId`; (3) reenvía cada trama de `MicCapture` como binario; (4) al detener envía `end` y espera `done` con los enunciados; (5) calcula las métricas del cliente con funciones puras de `@pulso/shared`: `computeRhythm` (VAD + palabras), `countFillers`, `trackingScore` (si hay fantasma), `computeGreenZone`/`classifyHz` para `greenZonePct`, `activeVocabPer100` y `detectComodin` (paso 13); (6) `POST …/sessions/:id/finish` con contorno, `referenceHz`, métricas, transcripción y enunciados; (7) navega a `/sesiones/:id`. Mientras graba, `dictionLive` = `dictionScore` (paso 15) calculado con la confianza media de los enunciados finales recibidos, el ppm y la razón de pausas actuales, y alimenta el medidor de **Dicción** de `Meters.tsx` (que hasta ahora mostraba "—"). `Monitor.tsx` ("Grabar") usa este mismo hook con `mode: "libre"` (la semana de línea base del paso 19 depende de ello) y `FrasePerfecta.tsx` con `mode: "frase"` o `"mi-mejor-yo"`. `useRecordingSession.test.ts` lo prueba con `MicCapture`, `WebSocket` y `apiFetch` simulados y verifica el orden de las llamadas.
 - `apps/web/src/routes/FrasePerfecta.tsx` — tres pasos con `<ol>` visible y foco gestionado: (1) elegir perfil y frase del repertorio (o escribir una; llama a `POST …/ghost` para las marcas), (2) decirla siguiendo el fantasma (monitor + fantasma + puntaje de seguimiento en vivo), (3) veredicto.
-- `apps/web/src/components/Verdict.tsx` — el sello se muestra **una sola vez**: texto exacto `ORATORIA PERFECTA ✓`, animación de 400 ms de un único pulso (`emil-design-eng` para la curva; desactivada con `prefers-reduced-motion`) y un `role="status"` con el mismo texto; si no es perfecto, lista cada condición fallida como texto. `apps/web/src/routes/Sesion.tsx` (reporte `/sesiones/:id`) muestra métricas, `segundo N · palabra «X»` de la separación, corrección prioritaria, reemplazos de vocabulario y el sello. `apps/web/src/routes/Repertorio.tsx` lista las 10 frases con una vista previa del fantasma. Textos nuevos en `i18n/es.ts`.
+- `apps/web/src/components/Verdict.tsx` — el sello se muestra **una sola vez**: texto exacto `ORATORIA PERFECTA ✓`, animación de 400 ms de un único pulso (`emil-design-eng` para la curva; desactivada con `prefers-reduced-motion`) y un `role="status"` con el mismo texto; si no es perfecto, lista cada condición fallida como texto. `apps/web/src/routes/Sesion.tsx` (reporte `/sesiones/:id`) muestra métricas, `segundo N · palabra «X»` de la separación, corrección prioritaria, reemplazos de vocabulario y el sello. `apps/web/src/routes/Repertorio.tsx` lista las 10 frases con una vista previa del fantasma. Textos nuevos en `i18n/es.ts`; `router.tsx` no se toca (estas pantallas reescriben los marcadores del paso 7).
 - Pruebas: `useRecordingSession.test.ts` (orden de las llamadas con dobles de `MicCapture`, `WebSocket` y `apiFetch`), `Verdict.test.tsx` y `FrasePerfecta.test.tsx` (jsdom: los tres pasos en un `<ol>`, foco gestionado) y `tests/e2e/app/perfect-phrase.spec.ts` (con el STT grabado del servidor de pruebas y el micrófono falso: elegir "Tarima", cargar la frase 1, grabar 6 s, aterrizar en `/sesiones/:id` con veredicto **no** perfecto, segundo y palabra visibles; el documento existe vía `GET`).
 
 **Files**
-- `apps/web/src/session/**` — nuevo o editado según el detalle anterior
-- `apps/web/src/routes/**` — nuevo o editado según el detalle anterior
-- `apps/web/src/components/Verdict.tsx` — nuevo o editado según el detalle anterior
-- `apps/web/src/meters/Meters.tsx` — nuevo o editado según el detalle anterior
+- `apps/web/src/**` — nuevo o editado según el detalle anterior
 - `tests/e2e/app/perfect-phrase.spec.ts` — nuevo o editado según el detalle anterior
 
 **Acceptance**
@@ -495,7 +493,7 @@ Rutas del servidor y pantallas de web del coaching: diccionario personal, reto s
 - `apps/server/src/routes/vocab.ts` — `GET/PUT /api/v1/orgs/:orgId/vocab` (diccionario personal) y `GET/PUT …/challenge` (reto semanal, clave `isoWeekKey(new Date())`).
 - `apps/server/src/routes/baseline.ts` — `PUT …/voice-sheet/:profileId` y `POST …/baseline/complete` (construye las fichas con `buildVoiceSheet`).
 - `apps/server/src/routes/account.ts` — `GET /api/v1/orgs/:orgId/export` (JSON con `user`, `org`, `members` y todas las subcolecciones de `COLLECTION_NAMES`, con `checkRevoked: true`) y `DELETE /api/v1/orgs/:orgId` con cuerpo `{ confirm: "BORRAR" }` (borra recursivamente `orgs/{orgId}`, `users/{uid}`, el audio `tmp/{orgId}/`, y el usuario de Auth con `deleteUser`; después `POST /api/v1/session` con el token viejo responde 401 por `checkRevoked`). Ambas exigen que el usuario sea el `ownerUid`. `apps/server/src/app.ts` (editar) monta las tres rutas.
-- Web — `routes/Vocabulario.tsx` (palabras comodín con conteo real de las sesiones, reemplazos en contexto, diccionario personal editable, reto semanal con ✓ por palabra usada), `routes/Baseline.tsx` (plan de la semana con `baselinePlan`, progreso y ficha vocal; los botones "Grabar" usan `useRecordingSession` en modo `libre`), `routes/Inicio.tsx` (nivel con `computeLevel` o "Midiendo tu línea base" según `levelState`, reto semanal, siguiente sesión), `routes/Ajustes.tsx` (activa "Exportar mis datos" —descarga `pulso-datos.json`— y "Borrar mi cuenta" con diálogo de confirmación `@radix-ui/react-dialog` que exige escribir `BORRAR`). Textos nuevos en `i18n/es.ts`; `router.tsx` ya tiene las rutas del manifiesto (paso 7).
+- Web — `routes/Vocabulario.tsx` (palabras comodín con conteo real de las sesiones, reemplazos en contexto, diccionario personal editable, reto semanal con ✓ por palabra usada), `routes/Baseline.tsx` (plan de la semana con `baselinePlan`, progreso y ficha vocal; los botones "Grabar" usan `useRecordingSession` en modo `libre`), `routes/Inicio.tsx` (nivel con `computeLevel` o "Midiendo tu línea base" según `levelState`, reto semanal, siguiente sesión), `routes/Ajustes.tsx` (activa "Exportar mis datos" —descarga `pulso-datos.json`— y "Borrar mi cuenta" con diálogo de confirmación `@radix-ui/react-dialog` que exige escribir `BORRAR`). Textos nuevos en `i18n/es.ts`; `router.tsx` no se toca: estas pantallas reescriben los marcadores del paso 7.
 - Pruebas: `apps/server/tests/emulator/account.test.ts` (exportar incluye cada colección; borrar deja 0 documentos bajo la organización y el usuario ya no puede re-aprovisionarse), `apps/server/tests/emulator/baseline.test.ts` (la ficha se guarda por perfil y `orgId` ajeno responde 404), `Vocabulario.test.tsx` y `Inicio.test.tsx` (jsdom) y `tests/e2e/app/baseline.spec.ts` (Inicio muestra "Midiendo tu línea base" en un usuario nuevo; Ajustes exporta un JSON con las claves esperadas).
 
 **Files**
@@ -544,14 +542,13 @@ El servidor limita la tasa de solicitudes, el bundle tiene una guarda de tamaño
 
 Endurecimiento de calidad: límites de tasa, presupuesto de bundle y pasada de accesibilidad sobre todas las rutas. Nada de esto despliega ni llama a Google.
 
-- `apps/server/src/rate-limit.ts` — middleware de ventana fija en memoria por `uid` (o por IP en `POST /api/v1/session`): 60 solicitudes/min por `uid`, 10/min por IP en `/session`; excedido → 429 `rate_limited` con `retry-after`. Limitación honesta: es **por instancia** de Cloud Run (con varias instancias el tope efectivo se multiplica); la defensa de costo real son la cuota diaria de STT y el tope de 270 s. El reloj se inyecta. `apps/server/src/app.ts` (editar) lo monta; `rate-limit.test.ts` lo prueba con reloj falso.
+- `apps/server/src/rate-limit.ts` — middleware de ventana fija en memoria por `uid` (o por IP en `POST /api/v1/session`): 60 solicitudes/min por `uid`, 10/min por IP en `/session`; excedido → 429 `rate_limited` con `retry-after`. Limitación honesta: es **por instancia** de Cloud Run (con varias instancias el tope efectivo se multiplica); la defensa de costo real son la cuota diaria de STT y el tope de 270 s. El reloj se inyecta. `apps/server/src/app.ts` (editar) lo monta: `createApp` acepta `deps.rateLimit?: { perUidPerMin: number; perIpSessionPerMin: number; now: () => number }` (opcional como el resto de `deps.*`; sin ella no se monta el limitador). `apps/server/src/index.ts` (editar) la construye con 60, 10 y `Date.now`; `apps/server/tests/e2e-server.ts` (editar) la construye con topes de 10000, porque los recorridos e2e recargan la SPA decenas de veces y cada carga llama a `POST /api/v1/session`; **solo** `rate-limit.test.ts` usa 60/10, con reloj falso.
 - `deploy/check-bundle-budget.mjs` — tras `pnpm build` suma los bytes gzip de `apps/web/dist/assets/*.js` (presupuesto: ≤ 600 KB) y de `*.css` (≤ 60 KB); falla si se exceden. Es una guarda de regresión inicial: se afina tras medir en producción.
 - `tests/e2e/app/a11y.spec.ts` — **no importa código del producto**: lee `apps/web/src/routes.ts` como TEXTO (con `node:fs`) y extrae los `path` de las rutas con `auth: "usuario"`; antes del recorrido crea una sesión real llamando a la API del servidor de pruebas (`POST /api/v1/orgs/:orgId/sessions` con el token del usuario de prueba) para sustituir `:id` en `/sesiones/:id`. Recorre cada ruta en el tema oscuro y en el claro a 375 px con `AxeBuilder` (`wcag2a`, `wcag2aa`, `wcag21aa`, `wcag22aa`) y exige 0 violaciones; el primer Tab llega al enlace "Saltar al contenido" y todo elemento enfocable tiene `outline-width ≥ 2px`.
 
 **Files**
-- `apps/server/src/rate-limit.ts` — nuevo o editado según el detalle anterior
-- `apps/server/src/app.ts` — nuevo o editado según el detalle anterior
-- `apps/server/src/rate-limit.test.ts` — nuevo o editado según el detalle anterior
+- `apps/server/src/*.ts` — nuevo o editado según el detalle anterior
+- `apps/server/tests/e2e-server.ts` — nuevo o editado según el detalle anterior
 - `deploy/check-bundle-budget.mjs` — nuevo o editado según el detalle anterior
 - `tests/e2e/app/a11y.spec.ts` — nuevo o editado según el detalle anterior
 

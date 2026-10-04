@@ -88,6 +88,7 @@
     "checkpoint": "step-03-data-schemas-rules",
     "files": [
       "packages/shared/src/schemas/**",
+      "packages/shared/src/index.ts",
       "apps/server/src/data/org-store.ts",
       "apps/server/tests/emulator/**",
       "tests/repo/firestore-indexes.test.ts"
@@ -221,8 +222,8 @@
       "apps/web/src/**",
       "apps/server/src/routes/session.ts",
       "scripts/check-pwa.mjs",
-      "tests/repo/tokens-parity.test.ts",
-      "tests/e2e/*/{shell,pwa}.spec.ts"
+      "tests/repo/*.test.ts",
+      "tests/e2e/*/*.spec.ts"
     ],
     "status": "pending"
   },
@@ -317,9 +318,8 @@
     "checkpoint": "step-10-live-monitor",
     "files": [
       "packages/shared/src/monitor/**",
-      "apps/web/src/audio/**",
-      "apps/web/src/monitor/**",
-      "apps/web/src/routes/Monitor.tsx",
+      "packages/shared/src/index.ts",
+      "apps/web/src/**",
       "tests/e2e/app/monitor.spec.ts"
     ],
     "status": "pending"
@@ -445,10 +445,10 @@
     ],
     "checkpoint": "step-14-audio-gateway",
     "files": [
-      "packages/shared/src/wire.ts",
-      "packages/shared/src/index.ts",
+      "packages/shared/src/*.ts",
       "apps/server/src/**",
       "apps/server/tests/**",
+      "apps/server/scripts/spike-stt.ts",
       "apps/web/src/audio/**"
     ],
     "status": "pending"
@@ -552,8 +552,7 @@
     ],
     "checkpoint": "step-17-verdict-phrases",
     "files": [
-      "packages/shared/src/coaching/verdict.ts",
-      "packages/shared/src/coaching/repertoire.ts",
+      "packages/shared/src/coaching/**",
       "packages/shared/src/index.ts",
       "apps/server/src/**",
       "apps/server/tests/emulator/phrases.test.ts"
@@ -584,10 +583,7 @@
     ],
     "checkpoint": "step-18-perfect-phrase-ui",
     "files": [
-      "apps/web/src/session/**",
-      "apps/web/src/routes/**",
-      "apps/web/src/components/Verdict.tsx",
-      "apps/web/src/meters/Meters.tsx",
+      "apps/web/src/**",
       "tests/e2e/app/perfect-phrase.spec.ts"
     ],
     "status": "pending"
@@ -651,9 +647,8 @@
     ],
     "checkpoint": "step-20-hardening-quality",
     "files": [
-      "apps/server/src/rate-limit.ts",
-      "apps/server/src/app.ts",
-      "apps/server/src/rate-limit.test.ts",
+      "apps/server/src/*.ts",
+      "apps/server/tests/e2e-server.ts",
       "deploy/check-bundle-budget.mjs",
       "tests/e2e/app/a11y.spec.ts"
     ],

@@ -58,8 +58,8 @@ apps/server/tests/        # setup.ts existe; helpers/env.ts (paso 4); helpers/em
 apps/web/
   index.html, public/theme-init.js, public/icons/*               # index.html y theme-init NUEVOS paso 2 (iconos existen)
   src/main.tsx, App.tsx, styles/tokens.css, app.css, i18n/es.ts, components/layout/AppShell.tsx   # NUEVO paso 2 (main.tsx, App.tsx, es.ts, AppShell se editan después)
-  src/lib/env.ts, firebase.ts, api.ts, auth/AuthProvider.tsx, auth/RequireAuth.tsx, routes/Entrar.tsx, router.tsx   # NUEVO paso 6
-  src/routes.ts, components/PageState.tsx, lib/theme.ts, routes/Ajustes.tsx, pwa.ts, vite-env.d.ts   # NUEVO paso 7
+  src/lib/env.ts, firebase.ts, api.ts, auth/AuthProvider.tsx, auth/RequireAuth.tsx, routes/Entrar.tsx, router.tsx   # NUEVO paso 6 (más los marcadores routes/Inicio.tsx y routes/Monitor.tsx; i18n/es.ts se edita: auth.loading)
+  src/routes.ts, components/PageState.tsx, lib/theme.ts, routes/Ajustes.tsx, pwa.ts, vite-env.d.ts   # NUEVO paso 7 (auth/RequireAuth.tsx se edita para usar PageState; los marcadores routes/FrasePerfecta.tsx, Sesion.tsx, Repertorio.tsx, Vocabulario.tsx y Baseline.tsx nacen aquí y router.tsx no se vuelve a tocar)
 tests/e2e/global-setup.ts (existe), ui/layout.spec.ts (paso 2), app/auth.spec.ts (paso 6), app/shell.spec.ts y ui/pwa.spec.ts (paso 7; pwa.spec.ts corre contra el bundle de producción en el puerto 4173)
 tests/repo/firestore-indexes.test.ts (paso 3), tokens-parity.test.ts (paso 7)
 ```
@@ -286,6 +286,7 @@ Capa de datos con aislamiento por organización. Firestore con el SDK oficial, *
 
 **Files**
 - `packages/shared/src/schemas/**` — nuevo o editado según el detalle anterior
+- `packages/shared/src/index.ts` — nuevo o editado según el detalle anterior
 - `apps/server/src/data/org-store.ts` — nuevo o editado según el detalle anterior
 - `apps/server/tests/emulator/**` — nuevo o editado según el detalle anterior
 - `tests/repo/firestore-indexes.test.ts` — nuevo o editado según el detalle anterior
@@ -437,10 +438,10 @@ La web inicia sesión con Google, llama a `POST /api/v1/session` y protege las r
 
 - `apps/web/src/lib/env.ts` — zod sobre `import.meta.env`: `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID`, `VITE_USE_EMULATORS`, `VITE_API_URL`, `VITE_WS_URL` (las dos últimas pueden estar vacías); si falta una obligatoria, lanza nombrándola. `lib/env.test.ts` lo prueba con los valores del setup y con `vi.stubEnv` para la ausencia de `VITE_FIREBASE_PROJECT_ID`.
 - `apps/web/src/lib/firebase.ts` — `initializeApp`, `getAuth`, `connectAuthEmulator("http://127.0.0.1:9099", { disableWarnings: true })` si `VITE_USE_EMULATORS === "true"`, `getFirestore` + `connectFirestoreEmulator("127.0.0.1", 8080)`. `lib/api.ts` — `apiFetch(path, init)` añade el `Authorization: Bearer` del usuario actual y usa `VITE_API_URL` como base.
-- `apps/web/src/auth/AuthProvider.tsx` — estado `cargando | anonimo | autenticado`; tras iniciar sesión llama a `POST /api/v1/session` y guarda `{ user, org }`. `apps/web/src/auth/RequireAuth.tsx` — si anónimo: `<Navigate to={"/entrar?next=" + encodeURIComponent(location.pathname + location.search)} />`; mientras carga muestra `PageState` en `cargando`.
+- `apps/web/src/auth/AuthProvider.tsx` — estado `cargando | anonimo | autenticado`; tras iniciar sesión llama a `POST /api/v1/session` y guarda `{ user, org }`. **Al recargar la página**, `onAuthStateChanged` devuelve el usuario que Firebase persistió en IndexedDB y el proveedor restaura `{ user, org }` llamando a `POST /api/v1/session` (idempotente; no hay un `GET /me` aparte) **una sola vez por carga de página** (una referencia evita repetirla en cada renovación de token y en el doble montaje de `StrictMode`); sin usuario pasa a `anonimo`, y si la llamada falla pasa a `anonimo` conservando el error para `Entrar`. `apps/web/src/auth/RequireAuth.tsx` — si anónimo: `<Navigate to={"/entrar?next=" + encodeURIComponent(location.pathname + location.search)} />`; mientras carga renderiza `<p role="status">` con la cadena `auth.loading` de `es.ts` ("Cargando…"); el paso 7 lo sustituye por `PageState`.
 - `apps/web/src/routes/Entrar.tsx` — botón "Entrar con Google": `signInWithPopup` en escritorio, `signInWithRedirect` + `getRedirectResult` cuando `navigator.standalone` o iOS; y, **solo** dentro de la rama `VITE_USE_EMULATORS === "true"`, un botón "Entrar con cuenta de prueba" que crea o inicia sesión con `e2e@pulso.test` / `pulso-test-1234` (`createUserWithEmailAndPassword` / `signInWithEmailAndPassword`) contra el emulador y **a continuación** marca el correo como verificado (el emulador emite `email_verified: false` y `requireUser` exige `true`): `POST http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:update?key=fake` con `{ idToken, emailVerified: true }`, luego `getIdToken(true)` para refrescar el token y solo entonces `POST /api/v1/session`. Un 403 `forbidden_email` muestra "Esta cuenta no está autorizada" con la opción de salir.
-- `apps/web/src/router.tsx` — `createBrowserRouter`: `/entrar` pública; `/` y `/monitor` envueltas en `RequireAuth` con `AppShell`. Las cadenas nuevas van a `i18n/es.ts`.
-- `apps/web/src/auth/RequireAuth.test.tsx` — con `MemoryRouter`: anónimo en `/monitor` termina en `/entrar?next=%2Fmonitor`; autenticado renderiza el hijo. `routes/Entrar.test.tsx` — el botón de cuenta de prueba no existe cuando `VITE_USE_EMULATORS` es `"false"`, y con `"true"` verifica con `fetch` y Auth simulados el orden: inicio de sesión → `accounts:update` con `emailVerified: true` → `getIdToken(true)` → `POST /api/v1/session`.
+- `apps/web/src/router.tsx` — `createBrowserRouter`: `/entrar` pública; `/` y `/monitor` envueltas en `RequireAuth` con `AppShell`. Las cadenas nuevas van a `i18n/es.ts` (entre ellas `auth.loading`). Las pantallas de `/` y `/monitor` son marcadores mínimos (`routes/Inicio.tsx` y `routes/Monitor.tsx`, un `<h1>` cada uno) que los pasos 7, 10 y 19 reescriben sin tocar `router.tsx`.
+- `apps/web/src/auth/RequireAuth.test.tsx` — con `MemoryRouter`: anónimo en `/monitor` termina en `/entrar?next=%2Fmonitor`; autenticado renderiza el hijo; en `cargando` renderiza el `role="status"` con el texto de `auth.loading`. `auth/AuthProvider.test.tsx` — con `onAuthStateChanged` y `apiFetch` simulados: una carga con usuario persistido llama a `POST /api/v1/session` exactamente una vez, aunque el token se renueve, y deja `{ user, org }` disponibles. `routes/Entrar.test.tsx` — el botón de cuenta de prueba no existe cuando `VITE_USE_EMULATORS` es `"false"`, y con `"true"` verifica con `fetch` y Auth simulados el orden: inicio de sesión → `accounts:update` con `emailVerified: true` → `getIdToken(true)` → `POST /api/v1/session`.
 - `tests/e2e/app/auth.spec.ts` — abre `/monitor` anónimo, afirma la URL `/entrar?next=%2Fmonitor`, pulsa el botón de prueba y afirma volver a `/monitor`.
 
 **Files**
@@ -485,8 +486,9 @@ Existe el manifiesto de rutas con sus estados, el shell autenticado completo, la
 
 Shell autenticado completo y PWA instalable. Aquí se fija el **manifiesto de rutas** (contrato del frontend) y los tres estados de cada pantalla.
 
-- `apps/web/src/routes.ts` — manifiesto: array de `{ path, titleKey, auth: "publica" | "usuario", rendering: "cliente" }` para `/entrar`, `/`, `/monitor`, `/frase-perfecta`, `/sesiones/:id`, `/repertorio`, `/vocabulario`, `/baseline`, `/ajustes`. Todas son **cliente** (SPA tras login, sin SEO). `router.tsx` se construye A PARTIR de este manifiesto; un test recorre el manifiesto y afirma que cada ruta resuelve a un componente.
-- `apps/web/src/components/PageState.tsx` — `PageState` con las variantes `cargando` (esqueleto con las mismas dimensiones que el contenido real), `vacio` (mensaje + acción principal) y `error` (mensaje + reintentar + `requestId` si lo hay). Cada pantalla pendiente de pasos posteriores renderiza hoy `PageState variant="vacio"` con su `<h1>` (un único `h1` por ruta; `document.title` propio por ruta).
+- `apps/web/src/routes.ts` — manifiesto: array de `{ path, titleKey, auth: "publica" | "usuario", rendering: "cliente" }` para `/entrar`, `/`, `/monitor`, `/frase-perfecta`, `/sesiones/:id`, `/repertorio`, `/vocabulario`, `/baseline`, `/ajustes`. Todas son **cliente** (SPA tras login, sin SEO). `router.tsx` se construye A PARTIR de este manifiesto y mapea cada ruta a `routes/<Nombre>.tsx`; un test recorre el manifiesto y afirma que cada ruta resuelve a un componente. Las pantallas que aún no existen (`FrasePerfecta`, `Sesion`, `Repertorio`, `Vocabulario`, `Baseline`) se crean aquí como marcadores, y los pasos 10, 18 y 19 **reescriben esos archivos sin volver a tocar `router.tsx`**.
+- `apps/web/src/components/PageState.tsx` — `PageState` con las variantes `cargando` (esqueleto con las mismas dimensiones que el contenido real), `vacio` (mensaje + acción principal) y `error` (mensaje + reintentar + `requestId` si lo hay). Cada pantalla pendiente de pasos posteriores (incluidos los marcadores `Inicio` y `Monitor` del paso 6) renderiza hoy `PageState variant="vacio"` con su `<h1>` (un único `h1` por ruta; `document.title` propio por ruta).
+- `apps/web/src/auth/RequireAuth.tsx` (editar) — sustituye el `<p role="status">` de `auth.loading` del paso 6 por `PageState variant="cargando"`, que conserva `role="status"` y el texto de `auth.loading`; `RequireAuth.test.tsx` sigue pasando.
 - `apps/web/src/components/layout/AppShell.tsx` (editar) — navegación completa (Inicio, Monitor, Frase Perfecta, Repertorio, Vocabulario, Baseline, Ajustes) con `aria-current="page"`, objetivos táctiles ≥ 48 px en móvil, cabecera con el menú de la cuenta.
 - `apps/web/src/lib/theme.ts` — `applyTheme(pref)`: escribe `localStorage["pulso-theme"]` y `data-theme` en `<html>` (resolviendo `system` con `matchMedia`); `routes/Ajustes.tsx` — selector de tema (oscuro / claro / sistema), idioma STT (`es-US`, `es-MX`, `es-419`; guardado en `users.sttLocale`) y, por ahora, los botones "Exportar mis datos" y "Borrar mi cuenta" deshabilitados con texto explicativo (los activa el paso 19). Al cambiar se llama a `PATCH /api/v1/me`.
 - `apps/server/src/routes/session.ts` (editar) — `PATCH /api/v1/me` con `@hono/zod-validator`: cuerpo `{ themePreference?: "dark"|"light"|"system", sttLocale?: "es-US"|"es-MX"|"es-419" }`, al menos un campo; escribe en `users/{uid}`; valor inválido → 422 `validation_error` sin escribir.
@@ -495,14 +497,14 @@ Shell autenticado completo y PWA instalable. Aquí se fija el **manifiesto de ru
 - `tests/repo/tokens-parity.test.ts` — extrae `manifestColor` de `apps/web/vite.config.ts` y `--p-dark-bg` de `tokens.css` y exige igualdad (sin mayúsculas/minúsculas).
 - `tests/e2e/app/shell.spec.ts` — con el usuario de prueba: recorre `/`, `/ajustes` y `/entrar` (esta última sin sesión) a 375 y 1440 px sin scroll horizontal; ejecuta `AxeBuilder` con las etiquetas `wcag2a, wcag2aa, wcag21aa, wcag22aa` y exige `violations` vacío; cambia el tema en Ajustes, recarga y comprueba `data-theme` en `DOMContentLoaded`.
 
-**Una sola sentada:** reúne el manifiesto de rutas, un componente de estados, la pantalla de Ajustes y la PWA; las pantallas pendientes son marcadores con el mismo componente, y cada prueba cubre un contrato.
+**Una sola sentada:** reúne el manifiesto de rutas, un componente de estados (más la edición de una línea en `RequireAuth`), la pantalla de Ajustes y la PWA; las pantallas pendientes son marcadores con el mismo componente, y cada prueba cubre un contrato.
 
 **Files**
 - `apps/web/src/**` — nuevo o editado según el detalle anterior
 - `apps/server/src/routes/session.ts` — nuevo o editado según el detalle anterior
 - `scripts/check-pwa.mjs` — nuevo o editado según el detalle anterior
-- `tests/repo/tokens-parity.test.ts` — nuevo o editado según el detalle anterior
-- `tests/e2e/*/{shell,pwa}.spec.ts` — nuevo o editado según el detalle anterior
+- `tests/repo/*.test.ts` — nuevo o editado según el detalle anterior
+- `tests/e2e/*/*.spec.ts` — nuevo o editado según el detalle anterior
 
 **Acceptance**
 

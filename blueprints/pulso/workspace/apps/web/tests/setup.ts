@@ -1,3 +1,5 @@
+import { vi } from "vitest";
+
 // React 19 needs this flag so `act()` works outside a testing library. The web tests render with
 // `react-dom/client` + `act` from "react" (no @testing-library dependency is pinned).
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -19,3 +21,9 @@ for (const [key, value] of Object.entries(viteDefaults)) {
   process.env[key] ??= value;
   (import.meta.env as Record<string, unknown>)[key] ??= value;
 }
+
+// `?worker&url` only resolves inside Vite's bundler graph, so no Vitest run may load it. Step 8
+// puts that suffix in exactly one module, `src/audio/worklet-url.ts`; this mock replaces it for
+// every web test. The path is relative to THIS file (`apps/web/tests/`); the mock is harmless
+// before step 8 creates the module because nothing imports it yet.
+vi.mock("../src/audio/worklet-url.ts", () => ({ workletUrl: "/worklet.js" }));
