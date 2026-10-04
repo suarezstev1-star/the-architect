@@ -363,6 +363,7 @@ Medidores secundarios y cálculo local de ritmo y pausas (VAD por RMS en el nave
 - `apps/web/src/meters/Meters.tsx` — tres medidores bajo el monitor: **Frecuencia** (valor en Hz en `font-mono`, etiqueta de texto "Zona verde" / "Baja" / "Alta" además del color, barra con la zona verde marcada), **Muletillas** (contador total y top-3 con su conteo) y **Ritmo** (ppm y pausas, con la zona del perfil). El medidor de **Dicción** (0–100) se cablea en el paso 18 (la fórmula `dictionScore` nace en el paso 15 y el flujo de grabación de sesiones, que aporta la confianza de las transcripciones, en el paso 18); hoy muestra "—" con texto explicativo. Cada medidor tiene `role="group"` y un nombre accesible.
 - `apps/web/src/routes/Monitor.tsx` (editar) — integra los medidores usando `Vad`, `computeRhythm` y la zona verde de la ficha vocal si existe (en la semana de línea base se mide sin juzgar: la zona se muestra como "midiendo").
 - Pruebas: `vad.test.ts`, `rhythm.test.ts` (60 s sintéticos: 50 s de habla con 4 pausas de 2.5 s y 125 palabras → `ppm` 150 ± 0.5, `pauseCount` 4, `pauseRatio` 10/60 ± 0.01), `frequency.test.ts`, `fillers.test.ts` (tabla de ≥ 12 casos, incluidos los negativos), `Meters.test.tsx` (jsdom: la etiqueta de zona es texto).
+- `apps/web/src/i18n/es.ts` (editar) — textos de los medidores.
 - `packages/shared/src/index.ts` (editar) — reexporta `meters/*`.
 
 **Files**

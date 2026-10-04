@@ -222,8 +222,8 @@
       "apps/web/src/**",
       "apps/server/src/routes/session.ts",
       "scripts/check-pwa.mjs",
-      "tests/repo/*.test.ts",
-      "tests/e2e/*/*.spec.ts"
+      "apps/server/tests/emulator/me.test.ts",
+      "tests/**"
     ],
     "status": "pending"
   },
