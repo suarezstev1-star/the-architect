@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// Temporary audio lives under tmp/{orgId}/{sessionId}.wav and is touched ONLY by the server
+// (Admin SDK bypasses these rules). No client access of any kind.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

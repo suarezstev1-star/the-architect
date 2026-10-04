@@ -1,0 +1,28 @@
+# order matters: this file lands BEFORE the first commit (see blueprint section 10 Bootstrap)
+node_modules/
+dist/
+coverage/
+.turbo/
+*.log
+.DS_Store
+
+# secrets and local env: ignored, with explicit exceptions for the committed templates below
+.env
+.env.*
+!.env.example
+!.env.e2e
+*.local
+
+# Firebase / emulator debris
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+*.rules.bak
+
+# test output
+playwright-report/
+test-results/
+tests/e2e/.tmp/
+
+# bundle: stays committable (blueprints/ is NOT ignored); nothing else is added here
